@@ -445,8 +445,8 @@
     <div class="panel-title">Your Outs</div>
 
     <div class="street-toggle">
-      <button class="street-btn active" id="btn-turn" onclick="setStreet('turn')">Turn (47 unseen)</button>
-      <button class="street-btn" id="btn-river" onclick="setStreet('river')">River (46 unseen)</button>
+      <button class="street-btn active" id="btn-flop" onclick="setStreet('flop')">Flop (2 cards left · ×4)</button>
+      <button class="street-btn" id="btn-turn" onclick="setStreet('turn')">Turn (1 card left · ×2)</button>
     </div>
 
     <div class="input-group">
@@ -502,13 +502,12 @@
 </div>
 
 <script>
-  let street = 'turn';
-  const UNSEEN = { turn: 47, river: 46 };
+  let street = 'flop';
 
   function setStreet(s) {
     street = s;
+    document.getElementById('btn-flop').classList.toggle('active', s === 'flop');
     document.getElementById('btn-turn').classList.toggle('active', s === 'turn');
-    document.getElementById('btn-river').classList.toggle('active', s === 'river');
     calc();
   }
 
@@ -522,92 +521,100 @@
     return n.toFixed(1) + '%';
   }
 
+  function calcEquity(outs, street) {
+    if (street === 'flop') {
+      // Exact: 1 - (remaining/47) * (remaining-1/46)
+      const rem = 47 - outs;
+      return (1 - (rem / 47) * ((rem - 1) / 46)) * 100;
+    } else {
+      // Turn: outs / 47
+      return (outs / 47) * 100;
+    }
+  }
+
   function calc() {
-    const pot = parseFloat(document.getElementById('pot').value) || 0;
-    const bet = parseFloat(document.getElementById('bet').value) || 0;
+    const pot  = parseFloat(document.getElementById('pot').value) || 0;
+    const bet  = parseFloat(document.getElementById('bet').value) || 0;
     const outs = parseFloat(document.getElementById('outs').value) || 0;
 
-    const result = document.getElementById('result');
-    const verdict = document.getElementById('verdict');
+    const result     = document.getElementById('result');
+    const verdict    = document.getElementById('verdict');
     const verdictSub = document.getElementById('verdict-sub');
 
-    if (pot <= 0 && bet <= 0 && outs <= 0) {
-      resetDisplay(); return;
-    }
+    if (pot <= 0 && bet <= 0 && outs <= 0) { resetDisplay(); return; }
 
-    // Pot odds: how much do we need to call vs total pot after calling
+    // Pot odds: call / (pot + bet + call)
+    const potAfterCall = pot + bet + bet;
+    const potOdds = bet > 0 ? (bet / potAfterCall) * 100 : 0;
+
+    // Equity: exact calc + rule shortcut
+    const equity    = outs > 0 ? calcEquity(outs, street) : 0;
+    const ruleOf    = street === 'flop' ? outs * 4 : outs * 2;
+    const ruleName  = street === 'flop' ? 'Rule of 4' : 'Rule of 2';
+    const mul       = street === 'flop' ? 4 : 2;
+
+    // Ratio: (pot + bet) / bet
     const totalPot = pot + bet;
-    const potOdds = bet > 0 ? (bet / (totalPot + bet)) * 100 : 0;
+    const ratio = bet > 0 ? (totalPot / bet).toFixed(1) + ':1' : '—';
 
-    // Equity from outs (rule of 2 and 4)
-    const unseen = UNSEEN[street];
-    const equity = outs > 0 ? (outs / unseen) * 100 : 0;
-
-    // Ratio: pot : bet
-    let ratio = '—';
-    if (bet > 0) {
-      const r = totalPot / bet;
-      ratio = r.toFixed(1) + ':1';
-    }
-
-    // Display
+    // Display stats
     document.getElementById('pot-odds-pct').textContent = bet > 0 ? fmt(potOdds) : '—';
-    document.getElementById('equity-pct').textContent = outs > 0 ? fmt(equity) : '—';
-    document.getElementById('odds-ratio').textContent = ratio;
+    document.getElementById('equity-pct').textContent   = outs > 0 ? fmt(equity) : '—';
+    document.getElementById('odds-ratio').textContent   = ratio;
 
-    // Breakeven
-    if (bet > 0) {
+    // Breakeven + rule shortcut
+    if (bet > 0 && outs > 0) {
       document.getElementById('breakeven-text').innerHTML =
-        `Breakeven: need <span>${fmt(potOdds)}</span> equity to call $${bet}`;
+        `Need <span>${fmt(potOdds)}</span> equity to call $${bet} &nbsp;·&nbsp; `
+        + `${ruleName}: ${outs}×${mul} = <span>~${ruleOf}%</span>`
+        + (street === 'flop' ? ` <em style="opacity:0.5">(slight overestimate)</em>` : '');
+    } else if (bet > 0) {
+      document.getElementById('breakeven-text').innerHTML =
+        `Need <span>${fmt(potOdds)}</span> equity to call $${bet}`;
     } else {
       document.getElementById('breakeven-text').innerHTML = '';
     }
 
     // EV bar & verdict
     if (outs > 0 && bet > 0) {
-      const diff = equity - potOdds;
+      const diff   = equity - potOdds;
       const barPct = Math.min(Math.max((equity / Math.max(potOdds * 2, equity * 1.5, 30)) * 100, 2), 100);
-
-      const evBar = document.getElementById('ev-bar');
+      const evBar  = document.getElementById('ev-bar');
       const evText = document.getElementById('ev-text');
 
       if (diff > 3) {
-        // Clear call
-        result.className = 'result call';
+        result.className  = 'result call';
         verdict.className = 'verdict call';
-        verdict.textContent = 'CALL';
-        verdictSub.textContent = `You have +${diff.toFixed(1)}% edge — profitable call`;
+        verdict.textContent    = 'CALL';
+        verdictSub.textContent = `+${diff.toFixed(1)}% edge — profitable call`;
         evBar.style.background = 'linear-gradient(90deg, #00c853, #69f0ae)';
-        evText.style.color = '#00c853';
-        evText.textContent = `Equity ${fmt(equity)} > Required ${fmt(potOdds)}`;
+        evText.style.color     = '#00c853';
+        evText.textContent     = `Equity ${fmt(equity)} > Required ${fmt(potOdds)}`;
       } else if (diff < -3) {
-        // Clear fold
-        result.className = 'result fold';
+        result.className  = 'result fold';
         verdict.className = 'verdict fold';
-        verdict.textContent = 'FOLD';
-        verdictSub.textContent = `You lack ${Math.abs(diff).toFixed(1)}% equity — losing call`;
+        verdict.textContent    = 'FOLD';
+        verdictSub.textContent = `−${Math.abs(diff).toFixed(1)}% short — losing call`;
         evBar.style.background = 'linear-gradient(90deg, #ff3d3d, #ff8a80)';
-        evText.style.color = '#ff3d3d';
-        evText.textContent = `Equity ${fmt(equity)} < Required ${fmt(potOdds)}`;
+        evText.style.color     = '#ff3d3d';
+        evText.textContent     = `Equity ${fmt(equity)} < Required ${fmt(potOdds)}`;
       } else {
-        // Close / marginal
-        result.className = 'result close';
+        result.className  = 'result close';
         verdict.className = 'verdict close';
-        verdict.textContent = 'MARGINAL';
+        verdict.textContent    = 'MARGINAL';
         verdictSub.textContent = `Within 3% — consider position & reads`;
         evBar.style.background = 'linear-gradient(90deg, #f5c842, #ffe082)';
-        evText.style.color = '#f5c842';
-        evText.textContent = `Equity ${fmt(equity)} ≈ Required ${fmt(potOdds)}`;
+        evText.style.color     = '#f5c842';
+        evText.textContent     = `Equity ${fmt(equity)} ≈ Required ${fmt(potOdds)}`;
       }
-
       evBar.style.width = barPct + '%';
 
     } else if (bet > 0 && outs === 0) {
       result.className = 'result';
       verdict.className = 'verdict neutral';
-      verdict.textContent = fmt(potOdds);
+      verdict.textContent    = fmt(potOdds);
       verdictSub.textContent = 'Required equity to call — enter outs for full analysis';
-      document.getElementById('ev-bar').style.width = '0%';
+      document.getElementById('ev-bar').style.width  = '0%';
       document.getElementById('ev-text').textContent = '—';
     } else {
       resetDisplay();
@@ -615,21 +622,21 @@
   }
 
   function resetDisplay() {
-    document.getElementById('result').className = 'result';
-    document.getElementById('verdict').className = 'verdict neutral';
-    document.getElementById('verdict').textContent = '— — —';
-    document.getElementById('verdict-sub').textContent = 'Enter values above to calculate';
-    document.getElementById('pot-odds-pct').textContent = '—';
-    document.getElementById('equity-pct').textContent = '—';
-    document.getElementById('odds-ratio').textContent = '—';
-    document.getElementById('ev-bar').style.width = '0%';
-    document.getElementById('ev-text').textContent = '—';
-    document.getElementById('breakeven-text').innerHTML = '';
+    document.getElementById('result').className           = 'result';
+    document.getElementById('verdict').className          = 'verdict neutral';
+    document.getElementById('verdict').textContent        = '— — —';
+    document.getElementById('verdict-sub').textContent    = 'Enter values above to calculate';
+    document.getElementById('pot-odds-pct').textContent   = '—';
+    document.getElementById('equity-pct').textContent     = '—';
+    document.getElementById('odds-ratio').textContent     = '—';
+    document.getElementById('ev-bar').style.width         = '0%';
+    document.getElementById('ev-text').textContent        = '—';
+    document.getElementById('breakeven-text').innerHTML   = '';
   }
 
   function resetAll() {
-    document.getElementById('pot').value = '';
-    document.getElementById('bet').value = '';
+    document.getElementById('pot').value  = '';
+    document.getElementById('bet').value  = '';
     document.getElementById('outs').value = '';
     resetDisplay();
   }
