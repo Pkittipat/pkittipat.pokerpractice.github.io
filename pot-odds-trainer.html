@@ -10,454 +10,444 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --green: #00c853;
-    --red: #ff3d3d;
-    --gold: #f5c842;
-    --bg: #0d1117;
-    --card: #151c1f;
-    --border: rgba(255,255,255,0.08);
-    --muted: rgba(255,255,255,0.3);
+    --green: #00c853; --red: #ff3d3d; --gold: #f5c842; --blue: #4fc3f7;
+    --purple: #ce93d8; --orange: #ffb74d;
+    --bg: #0d1117; --card: #151c1f; --border: rgba(255,255,255,0.08); --muted: rgba(255,255,255,0.3);
   }
 
-  body {
-    background: var(--bg);
-    font-family: 'IBM Plex Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
+  body { background: var(--bg); font-family: 'IBM Plex Mono', monospace; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,80,30,0.18) 0%, transparent 70%); pointer-events: none; }
 
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,80,30,0.18) 0%, transparent 70%);
-    pointer-events: none;
-  }
+  .wrapper { width: 100%; max-width: 560px; position: relative; z-index: 1; padding-top: 8px; }
 
-  .wrapper { width: 100%; max-width: 540px; position: relative; z-index: 1; }
-
-  /* Header */
-  header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.6rem; color: #fff; letter-spacing: 0.05em; line-height: 1; }
+  header { margin-bottom: 20px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; color: #fff; letter-spacing: 0.05em; line-height: 1; }
   h1 span { color: var(--gold); }
   .subtitle { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
 
-  /* Score bar */
-  .scoreboard {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+  /* Mode selector */
+  .mode-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .mode-btn { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); cursor: pointer; transition: all 0.18s; }
+  .mode-btn:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+  .mode-btn.active { background: rgba(245,200,66,0.12); border-color: var(--gold); color: var(--gold); }
+  .mode-btn.hard-active { background: rgba(255,61,61,0.12); border-color: var(--red); color: var(--red); }
 
-  .score-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-  }
-  .score-val { font-size: 1.6rem; font-weight: 600; color: #fff; line-height: 1; }
+  /* Scoreboard */
+  .scoreboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .score-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+  .score-val { font-size: 1.5rem; font-weight: 600; color: #fff; line-height: 1; }
   .score-val.green { color: var(--green); }
-  .score-val.red { color: var(--red); }
-  .score-lbl { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+  .score-lbl { font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
 
-  /* Scenario panel */
-  .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 12px;
-    position: relative;
-    overflow: hidden;
-  }
+  /* Streak + type row */
+  .streak-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .streak-badge { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.25); border-radius: 999px; padding: 4px 12px; transition: all 0.3s; }
+  .streak-badge.cold { color: var(--muted); background: transparent; border-color: var(--border); }
+  .type-badge { font-size: 0.58rem; letter-spacing: 0.09em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; border: 1px solid; }
+  .type-basic   { color: var(--blue);   border-color: rgba(79,195,247,0.4);  background: rgba(79,195,247,0.07); }
+  .type-raise   { color: var(--purple); border-color: rgba(206,147,216,0.4); background: rgba(206,147,216,0.07); }
+  .type-implied { color: var(--orange); border-color: rgba(255,183,77,0.4);  background: rgba(255,183,77,0.07); }
+  .type-multi   { color: var(--green);  border-color: rgba(0,200,83,0.4);    background: rgba(0,200,83,0.07); }
+  .type-bluff   { color: var(--red);    border-color: rgba(255,61,61,0.4);   background: rgba(255,61,61,0.07); }
 
-  .panel::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  }
+  /* Progress */
+  .progress-bar-track { height: 3px; background: rgba(255,255,255,0.06); border-radius: 999px; margin-bottom: 14px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--gold), #ffe082); border-radius: 999px; transition: width 0.4s ease; }
 
-  .panel-title {
-    font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 18px;
-    display: flex; align-items: center; gap: 8px;
-  }
+  /* Panel */
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 12px; position: relative; overflow: hidden; }
+  .panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
+  .panel-title { font-size: 0.56rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
   .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  /* Scenario info */
-  .scenario-info {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-  }
+  /* Info grid */
+  .scenario-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+  .info-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .info-box.hl-purple { border-color: rgba(206,147,216,0.35); background: rgba(206,147,216,0.06); }
+  .info-box.hl-orange { border-color: rgba(255,183,77,0.3); background: rgba(255,183,77,0.05); }
+  .info-label { font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .info-value { font-size: 1.2rem; font-weight: 600; color: #fff; }
+  .info-value.accent  { color: var(--gold); }
+  .info-value.purple  { color: var(--purple); }
+  .info-value.orange  { color: var(--orange); }
 
-  .info-box {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-  }
-  .info-label { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .info-value { font-size: 1.3rem; font-weight: 600; color: #fff; }
-  .info-value.accent { color: var(--gold); }
-
-  /* Hand description */
-  .hand-desc {
-    background: rgba(245,200,66,0.05);
-    border: 1px solid rgba(245,200,66,0.15);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-    font-size: 0.75rem;
-    line-height: 1.65;
-    color: rgba(255,255,255,0.6);
-  }
+  /* Hand desc */
+  .hand-desc { background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.13); border-radius: 10px; padding: 13px 15px; margin-bottom: 16px; font-size: 0.73rem; line-height: 1.75; color: rgba(255,255,255,0.58); }
   .hand-desc strong { color: var(--gold); font-weight: 500; }
 
-  /* Street badge */
-  .street-badge {
-    display: inline-block;
-    background: rgba(245,200,66,0.12);
-    border: 1px solid rgba(245,200,66,0.3);
-    color: var(--gold);
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 999px;
-    margin-bottom: 14px;
-  }
-
   /* Answer buttons */
-  .answer-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-top: 4px;
-  }
-
-  .ans-btn {
-    padding: 16px 10px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: rgba(0,0,0,0.3);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.7);
-    cursor: pointer;
-    transition: all 0.18s;
-  }
-
+  .answer-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .ans-btn { padding: 14px 8px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); font-family: 'IBM Plex Mono', monospace; font-size: 0.73rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.18s; text-align: center; line-height: 1.3; }
   .ans-btn:hover:not(:disabled) { transform: translateY(-2px); }
-
-  .ans-btn.call:hover:not(:disabled) { background: rgba(0,200,83,0.12); border-color: var(--green); color: var(--green); }
-  .ans-btn.fold:hover:not(:disabled) { background: rgba(255,61,61,0.12); border-color: var(--red); color: var(--red); }
-  .ans-btn.marginal:hover:not(:disabled) { background: rgba(245,200,66,0.12); border-color: var(--gold); color: var(--gold); }
-
-  .ans-btn.correct { background: rgba(0,200,83,0.15); border-color: var(--green); color: var(--green); }
-  .ans-btn.wrong { background: rgba(255,61,61,0.15); border-color: var(--red); color: var(--red); }
-  .ans-btn.reveal { background: rgba(0,200,83,0.08); border-color: rgba(0,200,83,0.4); color: rgba(0,200,83,0.7); }
+  .ans-btn.call:hover:not(:disabled)     { background: rgba(0,200,83,0.12);   border-color: var(--green);  color: var(--green); }
+  .ans-btn.fold:hover:not(:disabled)     { background: rgba(255,61,61,0.12);  border-color: var(--red);    color: var(--red); }
+  .ans-btn.marginal:hover:not(:disabled) { background: rgba(245,200,66,0.12); border-color: var(--gold);   color: var(--gold); }
+  .ans-btn.correct { background: rgba(0,200,83,0.15);  border-color: var(--green); color: var(--green); }
+  .ans-btn.wrong   { background: rgba(255,61,61,0.15); border-color: var(--red);   color: var(--red); }
+  .ans-btn.reveal  { background: rgba(0,200,83,0.08);  border-color: rgba(0,200,83,0.4); color: rgba(0,200,83,0.7); }
   .ans-btn:disabled { cursor: default; transform: none; opacity: 0.7; }
 
   /* Feedback */
-  .feedback {
-    border-radius: 12px;
-    padding: 18px;
-    margin-top: 12px;
-    display: none;
-    animation: slideIn 0.3s ease;
-  }
+  .feedback { border-radius: 12px; padding: 16px; margin-top: 12px; display: none; animation: slideIn 0.3s ease; }
   .feedback.show { display: block; }
   .feedback.correct-fb { background: rgba(0,200,83,0.08); border: 1px solid rgba(0,200,83,0.25); }
-  .feedback.wrong-fb { background: rgba(255,61,61,0.08); border: 1px solid rgba(255,61,61,0.25); }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .fb-title { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+  .feedback.wrong-fb   { background: rgba(255,61,61,0.08); border: 1px solid rgba(255,61,61,0.25); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fb-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; }
   .fb-title.correct-fb { color: var(--green); }
-  .fb-title.wrong-fb { color: var(--red); }
-  .fb-body { font-size: 0.72rem; line-height: 1.7; color: rgba(255,255,255,0.55); }
+  .fb-title.wrong-fb   { color: var(--red); }
+  .fb-body { font-size: 0.71rem; line-height: 1.75; color: rgba(255,255,255,0.55); }
   .fb-body strong { color: rgba(255,255,255,0.85); font-weight: 500; }
 
+  /* Tooltip */
+  .tooltip-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .tooltip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(245,200,66,0.4); color: rgba(245,200,66,0.6); font-size: 0.55rem; font-weight: 700; cursor: default; margin-left: 5px; flex-shrink: 0; line-height: 1; font-style: normal; }
+  .tooltip-box { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: 200px; background: #1e2530; border: 1px solid rgba(245,200,66,0.25); border-radius: 10px; padding: 10px 12px; font-size: 0.65rem; line-height: 1.6; color: rgba(255,255,255,0.65); pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 99; }
+  .tooltip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: rgba(245,200,66,0.25); }
+  .tooltip-wrap:hover .tooltip-box { opacity: 1; }
+  .tooltip-box strong { color: var(--gold); }
+
   /* Next btn */
-  .next-btn {
-    width: 100%;
-    background: var(--gold);
-    border: none;
-    border-radius: 10px;
-    padding: 16px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem;
-    letter-spacing: 0.1em;
-    color: #0d1117;
-    cursor: pointer;
-    margin-top: 10px;
-    display: none;
-    transition: opacity 0.2s, transform 0.2s;
-  }
+  .next-btn { width: 100%; background: var(--gold); border: none; border-radius: 10px; padding: 15px; font-family: 'Bebas Neue', sans-serif; font-size: 1.25rem; letter-spacing: 0.1em; color: #0d1117; cursor: pointer; margin-top: 10px; display: none; transition: opacity 0.2s, transform 0.2s; }
   .next-btn:hover { opacity: 0.9; transform: translateY(-1px); }
   .next-btn.show { display: block; }
 
-  /* Streak */
-  .streak-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-  .streak-badge {
-    font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--gold); background: rgba(245,200,66,0.1);
-    border: 1px solid rgba(245,200,66,0.25);
-    border-radius: 999px; padding: 4px 12px;
-    transition: all 0.3s;
-  }
-  .streak-badge.cold { color: var(--muted); background: transparent; border-color: var(--border); }
-
-  /* Progress */
-  .progress-bar-track {
-    height: 3px; background: rgba(255,255,255,0.06); border-radius: 999px;
-    margin-bottom: 16px; overflow: hidden;
-  }
-  .progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold), #ffe082);
-    border-radius: 999px;
-    transition: width 0.4s ease;
-  }
-
-  @media (max-width: 420px) {
-    .answer-row { grid-template-columns: 1fr; }
-    .scenario-info { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 400px) { .answer-row { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
 <div class="wrapper">
 
   <header>
-    <div>
-      <h1>Odds <span>Trainer</span></h1>
-      <div class="subtitle">♦ Pot odds decision practice</div>
-    </div>
+    <h1>Odds <span>Trainer</span></h1>
+    <div class="subtitle">♦ Poker decision practice</div>
   </header>
 
-  <!-- Streak -->
+  <div class="mode-row">
+    <button class="mode-btn active" id="mode-basic"   onclick="setMode('basic')">🎯 Basic</button>
+    <button class="mode-btn"        id="mode-raise"   onclick="setMode('raise')">♠ Facing Raise</button>
+    <button class="mode-btn"        id="mode-implied" onclick="setMode('implied')">💰 Implied Odds</button>
+    <button class="mode-btn"        id="mode-multi"   onclick="setMode('multi')">🔀 Multi-Street</button>
+    <button class="mode-btn"        id="mode-bluff"   onclick="setMode('bluff')">🎭 Bluff Spot</button>
+    <button class="mode-btn"        id="mode-hard"    onclick="setMode('hard')">🔥 Hard Mix</button>
+  </div>
+
   <div class="streak-row">
+    <div class="type-badge type-basic" id="type-badge">Basic Pot Odds</div>
     <div class="streak-badge cold" id="streak-badge">🔥 Streak: 0</div>
   </div>
 
-  <!-- Progress -->
-  <div class="progress-bar-track">
-    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
-  </div>
+  <div class="progress-bar-track"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
 
-  <!-- Scoreboard -->
   <div class="scoreboard">
-    <div class="score-box">
-      <div class="score-val" id="score-total">0</div>
-      <div class="score-lbl">Hands Played</div>
-    </div>
-    <div class="score-box">
-      <div class="score-val green" id="score-correct">0</div>
-      <div class="score-lbl">Correct</div>
-    </div>
-    <div class="score-box">
-      <div class="score-val" id="score-pct">—</div>
-      <div class="score-lbl">Accuracy</div>
-    </div>
+    <div class="score-box"><div class="score-val" id="score-total">0</div><div class="score-lbl">Played</div></div>
+    <div class="score-box"><div class="score-val green" id="score-correct">0</div><div class="score-lbl">Correct</div></div>
+    <div class="score-box"><div class="score-val" id="score-pct">—</div><div class="score-lbl">Accuracy</div></div>
   </div>
 
-  <!-- Scenario -->
   <div class="panel">
-    <div class="panel-title">Scenario</div>
-    <div class="street-badge" id="street-badge">Turn</div>
-
-    <div class="scenario-info">
-      <div class="info-box">
-        <div class="info-label">Pot Size</div>
-        <div class="info-value accent" id="disp-pot">$—</div>
-      </div>
-      <div class="info-box">
-        <div class="info-label">Villain's Bet</div>
-        <div class="info-value accent" id="disp-bet">$—</div>
-      </div>
-      <div class="info-box">
-        <div class="info-label">Your Outs</div>
-        <div class="info-value" id="disp-outs">—</div>
-      </div>
-      <div class="info-box">
-        <div class="info-label">To Call</div>
-        <div class="info-value" id="disp-call">$—</div>
-      </div>
-    </div>
-
-    <div class="hand-desc" id="hand-desc">Loading scenario...</div>
-
-    <div class="answer-row">
-      <button class="ans-btn call" id="btn-call" onclick="answer('call')">✓ Call</button>
-      <button class="ans-btn marginal" id="btn-marginal" onclick="answer('marginal')">~ Close</button>
-      <button class="ans-btn fold" id="btn-fold" onclick="answer('fold')">✗ Fold</button>
-    </div>
-
+    <div class="panel-title" id="panel-title">Scenario</div>
+    <div class="scenario-info" id="info-grid"></div>
+    <div class="hand-desc" id="hand-desc">Loading...</div>
+    <div class="answer-row" id="answer-row"></div>
     <div class="feedback" id="feedback">
       <div class="fb-title" id="fb-title"></div>
-      <div class="fb-body" id="fb-body"></div>
+      <div class="fb-body"  id="fb-body"></div>
     </div>
   </div>
 
   <button class="next-btn" id="next-btn" onclick="nextScenario()">Next Hand →</button>
-
 </div>
 
 <script>
-  // ─── State ───────────────────────────────────────────────
-  let total = 0, correct = 0, streak = 0;
-  let current = null;
+  let total = 0, correct = 0, streak = 0, current = null, currentMode = 'basic';
 
-  // ─── Scenario templates ──────────────────────────────────
-  const DRAW_TYPES = [
-    { name: 'flush draw', outs: 9,  desc: 'you hold two suited cards and two of your suit are on the board' },
-    { name: 'open-ended straight draw', outs: 8, desc: 'you have four consecutive cards and need either end to complete your straight' },
-    { name: 'gutshot straight draw', outs: 4, desc: 'you need one specific card in the middle to complete your straight' },
-    { name: 'two overcards', outs: 6, desc: 'your two hole cards are both higher than the board — pairing either wins' },
-    { name: 'combo flush + open-ended draw', outs: 15, desc: 'you have both a flush draw and an open-ended straight draw' },
-    { name: 'combo flush + gutshot', outs: 12, desc: 'you have a flush draw plus a gutshot straight draw' },
-    { name: 'one overcard', outs: 3, desc: 'you have one card higher than the board that would make top pair if it hits' },
+  const DRAWS = [
+    { name: 'flush draw',              outs: 9,  desc: 'two suited hole cards + two of your suit on board' },
+    { name: 'open-ended straight draw',outs: 8,  desc: 'four consecutive cards — need either end' },
+    { name: 'gutshot straight draw',   outs: 4,  desc: 'need one specific middle card' },
+    { name: 'two overcards',           outs: 6,  desc: 'both hole cards beat the board — pairing either wins' },
+    { name: 'combo flush + OESD',      outs: 15, desc: 'flush draw AND open-ended straight draw' },
+    { name: 'combo flush + gutshot',   outs: 12, desc: 'flush draw plus a gutshot' },
+    { name: 'one overcard',            outs: 3,  desc: 'one card higher than board — makes top pair if it hits' },
+    { name: 'pocket pair (set draw)',  outs: 2,  desc: 'need to spike your set on the board' },
   ];
+  const POSITIONS = ['UTG','MP','CO','BTN','SB','BB'];
+  const BOARDS    = ['K♠ 7♦ 2♣','J♥ 9♦ 4♥','Q♣ Q♦ 8♠','T♥ 8♥ 6♦','A♠ 5♦ 2♣','9♦ 8♦ 7♣','K♥ T♦ 3♠','6♥ 5♦ 2♣'];
+  const VILLAINS  = ['tight reg','loose aggro','unknown villain','fish','TAG reg','maniac'];
 
-  const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
-  const BOARDS = [
-    'a rainbow board of K♠ 7♦ 2♣',
-    'a two-tone board of J♥ 9♦ 4♥',
-    'a paired board of Q♣ Q♦ 8♠',
-    'a wet board of T♥ 8♥ 6♦',
-    'a dry board of A♠ 5♦ 2♣',
-    'a coordinated board of 9♦ 8♦ 7♣',
-  ];
+  const ri  = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const pk  = a => a[Math.floor(Math.random()*a.length)];
+  const r5  = n => Math.round(n/5)*5 || 5;
 
-  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  // ── Generators ──────────────────────────────────────────────
+
+  // River removed everywhere — draws only matter on flop (2 cards left) or turn (1 card left)
+  function calcEquity(draw, street) {
+    if (street==='flop') { const r=47-draw.outs; return (1-(r/47)*((r-1)/46))*100; }
+    return draw.outs/47*100; // turn: 47 unseen cards
+  }
+
+  function genBasic(hard) {
+    const street = pk(['flop','turn']);
+    const draw = pk(DRAWS);
+    const pot  = ri(hard?3:2, hard?25:15)*10;
+    const bet  = r5(pot * pk(hard?[.2,.28,.4,.55,.7,.9,1.1,1.5,2]:[.25,.33,.5,.66,.75,1]));
+    const totalPot = pot+bet;
+    const potOddsPct = bet/(totalPot+bet)*100;
+    const equityPct  = calcEquity(draw, street);
+    const ruleOf = street==='flop' ? draw.outs*4 : draw.outs*2;
+    const cardsLeft = street==='flop' ? 2 : 1;
+    const diff = equityPct-potOddsPct;
+    return { type:'basic', street, draw, pot, bet, totalPot, potOddsPct, equityPct, ruleOf, cardsLeft, diff,
+             correctAnswer: diff>3?'call':diff<-3?'fold':'marginal', position:pk(POSITIONS), board:pk(BOARDS) };
+  }
+
+  function genRaise(hard) {
+    const street = pk(['flop','turn']);
+    const draw = pk(DRAWS);
+    const pot  = ri(hard?4:3, hard?22:15)*10;
+    const origBet   = r5(pot * pk([.33,.5,.6]));
+    const raiseTotal= r5(origBet * pk(hard?[2.2,2.5,3,3.5]:[2.5,3]));
+    const extraCall = raiseTotal - origBet;
+    const potAfterOrigCall = pot + origBet*2;
+    const totalPot  = potAfterOrigCall + raiseTotal;
+    const potOddsPct= extraCall/(totalPot+extraCall)*100;
+    const equityPct = calcEquity(draw, street);
+    const ruleOf = street==='flop' ? draw.outs*4 : draw.outs*2;
+    const cardsLeft = street==='flop' ? 2 : 1;
+    const diff = equityPct-potOddsPct;
+    return { type:'raise', street, draw, pot, origBet, raiseTotal, extraCall,
+             potAfterOrigCall, totalPot, potOddsPct, equityPct, ruleOf, cardsLeft, diff,
+             correctAnswer: diff>3?'call':diff<-3?'fold':'marginal',
+             position:pk(POSITIONS), board:pk(BOARDS), villain:pk(VILLAINS) };
+  }
+
+  function genImplied(hard) {
+    const street = pk(['flop','turn']); // implied odds only matter when cards remain
+    const draw = pk(DRAWS.filter(d=>d.outs>=6));
+    const pot  = ri(hard?4:3, hard?20:12)*10;
+    const bet  = r5(pot * pk(hard?[.6,.8,1,1.3]:[.5,.75,1]));
+    const totalPot = pot+bet;
+    const impliedExtra = r5(pk([.5,.75,1,1.5,2])*pot);
+    const potOddsPct   = bet/(totalPot+bet)*100;
+    const equityPct    = calcEquity(draw, street);
+    const ruleOf = street==='flop' ? draw.outs*4 : draw.outs*2;
+    const cardsLeft = street==='flop' ? 2 : 1;
+    const unseen = street==='flop' ? 47 : 47; // both flop/turn have 47 unseen for next card
+    const effectiveCall= Math.max(bet - impliedExtra*(draw.outs/unseen), 5);
+    const impliedPotOdds= effectiveCall/(totalPot+effectiveCall)*100;
+    const diff = equityPct-potOddsPct, impliedDiff = equityPct-impliedPotOdds;
+    const correct = impliedDiff>3?'call': diff>3?'call': (diff<-3&&impliedDiff<-3)?'fold':'marginal';
+    return { type:'implied', street, draw, pot, bet, totalPot, impliedExtra, ruleOf, cardsLeft,
+             potOddsPct, equityPct, impliedPotOdds, diff, impliedDiff, correctAnswer:correct,
+             position:pk(POSITIONS), board:pk(BOARDS), villain:pk(VILLAINS) };
+  }
+
+  function genMulti(hard) {
+    const draw = pk(DRAWS.filter(d=>d.outs>=4));
+    const pot  = ri(hard?3:2, hard?20:12)*10;
+    const bet  = r5(pot * pk(hard?[.4,.6,.75,1,1.3]:[.33,.5,.66,.75]));
+    const totalPot = pot+bet;
+    const rem  = 47-draw.outs;
+    const equityPct = (1-(rem/47)*((rem-1)/46))*100;
+    const potOddsPct= bet/(totalPot+bet)*100;
+    const diff = equityPct-potOddsPct;
+    return { type:'multi', draw, pot, bet, totalPot, potOddsPct, equityPct, ruleOf4:draw.outs*4,
+             diff, correctAnswer: diff>3?'call':diff<-3?'fold':'marginal',
+             position:pk(POSITIONS), board:pk(BOARDS) };
+  }
+
+  function genBluff() {
+    const pot = ri(3,20)*10;
+    const bet = r5(pot * pk([.4,.5,.66,.75,1,1.25,1.5]));
+    const totalPot = pot+bet;
+    const potOddsPct   = bet/(totalPot+bet)*100;
+    const villainBluffPct = pk([8,12,15,20,25,30,35,40]);
+    const diff = villainBluffPct - potOddsPct;
+    return { type:'bluff', pot, bet, totalPot, potOddsPct, villainBluffPct, diff,
+             correctAnswer: diff>3?'call':diff<-3?'fold':'marginal',
+             position:pk(POSITIONS), board:pk(BOARDS), villain:pk(VILLAINS) };
+  }
+
+  // ── Mode ────────────────────────────────────────────────────
+
+  function setMode(m) {
+    currentMode = m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active','hard-active'));
+    document.getElementById('mode-'+m).classList.add(m==='hard'?'hard-active':'active');
+    nextScenario();
+  }
 
   function generateScenario() {
-    const street = Math.random() > 0.5 ? 'turn' : 'river';
-    const unseen = street === 'turn' ? 47 : 46;
-    const draw = pick(DRAW_TYPES);
-    const pot = randInt(2, 20) * 10;        // $20–$200 in $10 steps
-    // Random bet: varies from tiny to overbet
-    const betMultiples = [0.25, 0.33, 0.5, 0.66, 0.75, 1.0, 1.5, 2.0];
-    const betFrac = pick(betMultiples);
-    const bet = Math.round(pot * betFrac / 5) * 5 || 10;
-    const totalPot = pot + bet;
-    const potOddsPct = (bet / (totalPot + bet)) * 100;
-    const equityPct = (draw.outs / unseen) * 100;
-    const diff = equityPct - potOddsPct;
-
-    let correctAnswer, verdictLabel;
-    if (diff > 3) { correctAnswer = 'call'; verdictLabel = 'CALL'; }
-    else if (diff < -3) { correctAnswer = 'fold'; verdictLabel = 'FOLD'; }
-    else { correctAnswer = 'marginal'; verdictLabel = 'MARGINAL'; }
-
-    const position = pick(POSITIONS);
-    const board = pick(BOARDS);
-
-    return {
-      street, unseen, draw, pot, bet, totalPot,
-      potOddsPct, equityPct, diff,
-      correctAnswer, verdictLabel,
-      position, board
-    };
+    if (currentMode==='basic')   return genBasic(false);
+    if (currentMode==='raise')   return genRaise(false);
+    if (currentMode==='implied') return genImplied(false);
+    if (currentMode==='multi')   return genMulti(false);
+    if (currentMode==='bluff')   return genBluff();
+    // hard mix — pick random type with hard=true
+    const fns = [genBasic,genRaise,genImplied,genMulti,genBluff];
+    const fn  = pk(fns);
+    return fn===genBluff ? fn() : fn(true);
   }
+
+  // ── Render ──────────────────────────────────────────────────
 
   function renderScenario(s) {
-    document.getElementById('street-badge').textContent = s.street.charAt(0).toUpperCase() + s.street.slice(1);
-    document.getElementById('disp-pot').textContent = '$' + s.pot;
-    document.getElementById('disp-bet').textContent = '$' + s.bet;
-    document.getElementById('disp-outs').textContent = s.draw.outs;
-    document.getElementById('disp-call').textContent = '$' + s.bet;
+    document.getElementById('feedback').className  = 'feedback';
+    document.getElementById('next-btn').className  = 'next-btn';
+    const ig = document.getElementById('info-grid');
+    const hd = document.getElementById('hand-desc');
+    const ar = document.getElementById('answer-row');
+    const tb = document.getElementById('type-badge');
+    const pt = document.getElementById('panel-title');
 
-    document.getElementById('hand-desc').innerHTML =
-      `You're in <strong>${s.position}</strong> on the <strong>${s.street}</strong> facing a <strong>$${s.bet}</strong> bet into a <strong>$${s.pot}</strong> pot on <strong>${s.board}</strong>. You have a <strong>${s.draw.name}</strong> — ${s.draw.desc}.`;
+    if (s.type==='basic') {
+      tb.className='type-badge type-basic'; tb.textContent='🎯 Basic Pot Odds';
+      pt.textContent='Scenario';
+      ig.innerHTML=`
+        <div class="info-box"><div class="info-label">Pot</div><div class="info-value accent">$${s.pot}</div></div>
+        <div class="info-box"><div class="info-label">Villain Bet</div><div class="info-value accent">$${s.bet}</div></div>
+        <div class="info-box"><div class="info-label">Your Outs</div><div class="info-value">${s.draw.outs}</div></div>
+        <div class="info-box"><div class="info-label">Street</div><div class="info-value">${s.street} <span style="font-size:0.65rem;opacity:0.5">(${s.cardsLeft} card${s.cardsLeft>1?'s':''} left)</span></div></div>`;
+      hd.innerHTML=`You're in <strong>${s.position}</strong> on the <strong>${s.street}</strong>. Villain bets <strong>$${s.bet}</strong> into a <strong>$${s.pot}</strong> pot on <strong>${s.board}</strong>. You have a <strong>${s.draw.name}</strong> — ${s.draw.desc}.<br><br><span style="opacity:0.45;font-size:0.68rem;">Quick check: Rule of ${s.street==='flop'?'4':'2'} → ${s.draw.outs} × ${s.street==='flop'?4:2} = ~${s.ruleOf}% equity</span>`;
 
-    // Reset feedback & buttons
-    document.getElementById('feedback').className = 'feedback';
-    document.getElementById('next-btn').className = 'next-btn';
-    ['btn-call','btn-marginal','btn-fold'].forEach(id => {
-      const b = document.getElementById(id);
-      b.disabled = false;
-      b.className = b.className.replace(/ correct| wrong| reveal/g, '');
-    });
+    } else if (s.type==='raise') {
+      tb.className='type-badge type-raise'; tb.textContent='♠ Facing a Raise';
+      pt.textContent='Bet → Raise Scenario';
+      ig.innerHTML=`
+        <div class="info-box"><div class="info-label">Pot (pre-action)</div><div class="info-value accent">$${s.pot}</div></div>
+        <div class="info-box"><div class="info-label">Original Bet</div><div class="info-value accent">$${s.origBet}</div></div>
+        <div class="info-box hl-purple"><div class="info-label">Raise To</div><div class="info-value purple">$${s.raiseTotal}</div></div>
+        <div class="info-box hl-purple"><div class="info-label">Extra To Call</div><div class="info-value purple">$${s.extraCall}</div></div>`;
+      hd.innerHTML=`You're in <strong>${s.position}</strong> on the <strong>${s.street}</strong> on <strong>${s.board}</strong>. A <strong>${s.villain}</strong> bets <strong>$${s.origBet}</strong> — you called. Then a second player raises to <strong>$${s.raiseTotal}</strong>. You hold a <strong>${s.draw.name}</strong>.<br><br>Pot is now <strong>$${s.potAfterOrigCall}</strong> + raise <strong>$${s.raiseTotal}</strong>. You already put in <strong>$${s.origBet}</strong>, so you need <strong>$${s.extraCall}</strong> more to continue.<br><br><span style="opacity:0.45;font-size:0.68rem;">Rule of ${s.street==='flop'?'4':'2'} → ${s.draw.outs} × ${s.street==='flop'?4:2} = ~${s.ruleOf}% equity (${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come)</span>`;
+
+    } else if (s.type==='implied') {
+      tb.className='type-badge type-implied'; tb.textContent='💰 Implied Odds';
+      pt.textContent='Implied Odds Scenario';
+      ig.innerHTML=`
+        <div class="info-box"><div class="info-label">Pot (${s.street})</div><div class="info-value accent">$${s.pot}</div></div>
+        <div class="info-box"><div class="info-label">Villain Bet</div><div class="info-value accent">$${s.bet}</div></div>
+        <div class="info-box"><div class="info-label">Your Outs</div><div class="info-value">${s.draw.outs}</div></div>
+        <div class="info-box hl-orange"><div class="info-label">Est. Future Win</div><div class="info-value orange">+$${s.impliedExtra}</div></div>`;
+      hd.innerHTML=`You're in <strong>${s.position}</strong> on the <strong>${s.street}</strong> vs a <strong>${s.villain}</strong> on <strong>${s.board}</strong>. Villain bets <strong>$${s.bet}</strong> into <strong>$${s.pot}</strong>. You have a <strong>${s.draw.name}</strong>.<br><br>${s.street==='flop' ? `You still have <strong>two cards to come</strong> (turn + river). If you hit, you estimate winning <strong>+$${s.impliedExtra}</strong> more. Use Rule of 4: ~${s.ruleOf}% equity.` : `One card to come (river). If you hit, you estimate winning <strong>+$${s.impliedExtra}</strong> more from villain. Rule of 2: ~${s.ruleOf}% equity.`} Factor in implied odds — should you call?`;
+
+    } else if (s.type==='multi') {
+      tb.className='type-badge type-multi'; tb.textContent='🔀 Flop (2 cards left)';
+      pt.textContent='Multi-Street Scenario';
+      ig.innerHTML=`
+        <div class="info-box"><div class="info-label">Pot (Flop)</div><div class="info-value accent">$${s.pot}</div></div>
+        <div class="info-box"><div class="info-label">Villain Bet</div><div class="info-value accent">$${s.bet}</div></div>
+        <div class="info-box"><div class="info-label">Your Outs</div><div class="info-value">${s.draw.outs}</div></div>
+        <div class="info-box"><div class="info-label">Cards to Come</div><div class="info-value">2 🃏</div></div>`;
+      hd.innerHTML=`You're in <strong>${s.position}</strong> on the <strong>flop</strong> on <strong>${s.board}</strong>. Villain bets <strong>$${s.bet}</strong> into <strong>$${s.pot}</strong>. You have a <strong>${s.draw.name}</strong> — ${s.draw.desc}.<br><br>You have <strong>two cards to come</strong> (turn + river). Use <strong>Rule of 4</strong>: ${s.draw.outs} outs × 4 = ~${s.ruleOf4}% equity as your quick estimate.`;
+
+    } else if (s.type==='bluff') {
+      tb.className='type-badge type-bluff'; tb.textContent='🎭 Bluff Catcher';
+      pt.textContent='River Bluff Spot';
+      ig.innerHTML=`
+        <div class="info-box"><div class="info-label">Pot (River)</div><div class="info-value accent">$${s.pot}</div></div>
+        <div class="info-box"><div class="info-label">Villain Bet</div><div class="info-value accent">$${s.bet}</div></div>
+        <div class="info-box hl-purple"><div class="info-label">Villain Bluff Freq</div><div class="info-value purple">${s.villainBluffPct}%</div></div>
+        <div class="info-box"><div class="info-label">Your Hand</div><div class="info-value">Bluff-catcher</div></div>`;
+      hd.innerHTML=`You're in <strong>${s.position}</strong> on the <strong>river</strong> on <strong>${s.board}</strong>. You hold a <strong>bluff-catcher</strong> — beats bluffs, loses to value hands. A <strong>${s.villain}</strong> bets <strong>$${s.bet}</strong> into <strong>$${s.pot}</strong>.<br><br>Based on his range and tendencies, you estimate he bluffs <strong>${s.villainBluffPct}%</strong> of the time here. Is that enough to justify a call?`;
+    }
+
+    ar.innerHTML=`
+      <button class="ans-btn call"     onclick="answer('call')">✓ Call</button>
+      <button class="ans-btn marginal" onclick="answer('marginal')">~ Close <span class="tooltip-wrap"><i class="tooltip-icon">?</i><span class="tooltip-box"><strong>Marginal / Close</strong><br>Equity and pot odds are within ~3% of each other. Too tight to be a clear call or fold — position, reads, and implied odds should decide.</span></span></button>
+      <button class="ans-btn fold"     onclick="answer('fold')">✗ Fold</button>`;
   }
+
+  // ── Answer ──────────────────────────────────────────────────
 
   function answer(chosen) {
     if (!current) return;
     const s = current;
-
-    // Disable buttons
-    ['btn-call','btn-marginal','btn-fold'].forEach(id => document.getElementById(id).disabled = true);
-
-    const btnMap = { call: 'btn-call', marginal: 'btn-marginal', fold: 'btn-fold' };
+    document.querySelectorAll('.ans-btn').forEach(b => b.disabled = true);
     const isCorrect = chosen === s.correctAnswer;
 
-    // Style buttons
-    document.getElementById(btnMap[chosen]).classList.add(isCorrect ? 'correct' : 'wrong');
-    if (!isCorrect) document.getElementById(btnMap[s.correctAnswer]).classList.add('reveal');
+    document.querySelectorAll('.ans-btn').forEach(b => {
+      const t = b.textContent.trim().toLowerCase();
+      const btype = t.startsWith('✓')||t.startsWith('call') ? 'call' : t.startsWith('✗')||t.startsWith('fold') ? 'fold' : 'marginal';
+      if (btype===chosen)          b.classList.add(isCorrect?'correct':'wrong');
+      if (!isCorrect && btype===s.correctAnswer) b.classList.add('reveal');
+    });
 
-    // Update score
-    total++;
-    if (isCorrect) { correct++; streak++; } else { streak = 0; }
+    total++; if (isCorrect) { correct++; streak++; } else { streak=0; }
     updateScore();
 
-    // Feedback
     const fb = document.getElementById('feedback');
-    const fbTitle = document.getElementById('fb-title');
-    const fbBody = document.getElementById('fb-body');
-
-    const potOdds = s.potOddsPct.toFixed(1);
-    const equity = s.equityPct.toFixed(1);
-    const ratio = (s.totalPot / s.bet).toFixed(1);
-    const totalAfterCall = s.totalPot + s.bet;
-    const ruleOfTwo = (s.draw.outs * 2).toFixed(0);
-
-    if (isCorrect) {
-      fb.className = 'feedback show correct-fb';
-      fbTitle.className = 'fb-title correct-fb';
-      fbTitle.textContent = '✓ Correct!';
-    } else {
-      fb.className = 'feedback show wrong-fb';
-      fbTitle.className = 'fb-title wrong-fb';
-      fbTitle.textContent = `✗ Wrong — correct answer: ${s.verdictLabel}`;
-    }
-
-    fbBody.innerHTML =
-      `<strong>Pot odds:</strong> $${s.bet} to call into $${totalAfterCall} total → you need <strong>${potOdds}%</strong> equity (ratio ${ratio}:1).<br>` +
-      `<strong>Your equity:</strong> ${s.draw.outs} outs ÷ ${s.unseen} unseen = <strong>${equity}%</strong> &nbsp;<em style="opacity:0.5">(Rule of 2: ${s.draw.outs}×2 = ~${ruleOfTwo}%)</em><br>` +
-      (s.diff > 3
-        ? `Your equity <strong>exceeds</strong> pot odds by <strong>+${s.diff.toFixed(1)}%</strong> — clear profitable call.`
-        : s.diff < -3
-        ? `Your equity <strong>falls short</strong> of pot odds by <strong>${Math.abs(s.diff).toFixed(1)}%</strong> — fold saves money long-term.`
-        : `Within 3% — genuinely close spot. Consider <strong>position, reads, and implied odds</strong>.`);
-
+    fb.className = `feedback show ${isCorrect?'correct-fb':'wrong-fb'}`;
+    const ft = document.getElementById('fb-title');
+    ft.className = `fb-title ${isCorrect?'correct-fb':'wrong-fb'}`;
+    ft.textContent = isCorrect ? '✓ Correct!' : `✗ Wrong — correct: ${s.correctAnswer.toUpperCase()}`;
+    document.getElementById('fb-body').innerHTML = buildFeedback(s);
     document.getElementById('next-btn').className = 'next-btn show';
   }
 
+  function conclude(diff, bluff=false) {
+    const label = bluff ? 'Bluff freq' : 'Equity';
+    if (diff > 3)  return `${label} <strong>exceeds</strong> requirement by <strong>+${diff.toFixed(1)}%</strong> — profitable call.`;
+    if (diff < -3) return `${label} <strong>falls short</strong> by <strong>${Math.abs(diff).toFixed(1)}%</strong> — fold saves money long-term.`;
+    return `Within 3% — genuinely marginal. Consider <strong>position, reads & stack depth</strong>.`;
+  }
+
+  function buildFeedback(s) {
+    const ruleLabel = n => n===4 ? 'Rule of 4 (2 cards left)' : 'Rule of 2 (1 card left)';
+    if (s.type==='basic') {
+      const tot = s.totalPot+s.bet, mul = s.street==='flop'?4:2;
+      return `<strong>Street:</strong> ${s.street} — <strong>${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come</strong> → use ${ruleLabel(mul)}.<br>`
+           + `<strong>Pot odds:</strong> $${s.bet} into $${tot} → need <strong>${s.potOddsPct.toFixed(1)}%</strong> equity (${(s.totalPot/s.bet).toFixed(1)}:1).<br>`
+           + `<strong>Your equity:</strong> ${s.draw.outs} outs → exact <strong>${s.equityPct.toFixed(1)}%</strong> &nbsp;<em style="opacity:0.45">(${mul}× shortcut: ~${s.ruleOf}%)</em><br>`
+           + (s.street==='flop'?`<em style="opacity:0.5">Flop note: Rule of 4 slightly overestimates — be cautious on borderline calls.</em><br>`:'')
+           + conclude(s.diff);
+    }
+    if (s.type==='raise') {
+      const tot = s.totalPot+s.extraCall, mul = s.street==='flop'?4:2;
+      return `<strong>Street:</strong> ${s.street} — <strong>${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come</strong> → use ${ruleLabel(mul)}.<br>`
+           + `<strong>After the raise:</strong> pot is $${s.potAfterOrigCall} + $${s.raiseTotal} = <strong>$${s.totalPot}</strong>.<br>`
+           + `<strong>Pot odds:</strong> $${s.extraCall} more into $${tot} → need <strong>${s.potOddsPct.toFixed(1)}%</strong> equity.<br>`
+           + `<strong>Your equity:</strong> ${s.draw.outs} outs → <strong>${s.equityPct.toFixed(1)}%</strong> &nbsp;<em style="opacity:0.45">(${mul}× shortcut: ~${s.ruleOf}%)</em><br>`
+           + `<strong>Key:</strong> Always recalculate pot odds from scratch using only the extra amount you need to call.<br>`
+           + conclude(s.diff);
+    }
+    if (s.type==='implied') {
+      const tot = s.totalPot+s.bet, mul = s.street==='flop'?4:2;
+      return `<strong>Street:</strong> ${s.street} — <strong>${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come</strong> → use ${ruleLabel(mul)}.<br>`
+           + `<strong>Raw pot odds:</strong> $${s.bet} into $${tot} → need <strong>${s.potOddsPct.toFixed(1)}%</strong> equity.<br>`
+           + `<strong>Your equity:</strong> ${s.draw.outs} outs → <strong>${s.equityPct.toFixed(1)}%</strong> &nbsp;<em style="opacity:0.45">(${mul}× shortcut: ~${s.ruleOf}%)</em><br>`
+           + `<strong>With implied odds:</strong> +$${s.impliedExtra} expected if you hit → effective required equity drops to ~<strong>${s.impliedPotOdds.toFixed(1)}%</strong>.<br>`
+           + `<strong>Key:</strong> Implied odds = (call − expected future winnings) ÷ new total pot.<br>`
+           + conclude(s.impliedDiff);
+    }
+    if (s.type==='multi') {
+      const tot = s.totalPot+s.bet;
+      return `<strong>On the flop</strong> you have <strong>two cards to come</strong> — always use Rule of 4.<br>`
+           + `<strong>Rule of 4:</strong> ${s.draw.outs} × 4 = <strong>~${s.ruleOf}%</strong> &nbsp;<em style="opacity:0.45">(exact: ${s.equityPct.toFixed(1)}%)</em><br>`
+           + `<strong>Pot odds:</strong> $${s.bet} into $${tot} → need <strong>${s.potOddsPct.toFixed(1)}%</strong> equity.<br>`
+           + `<em style="opacity:0.5">Rule of 4 slightly over-estimates — be cautious on borderline calls.</em><br>`
+           + conclude(s.diff);
+    }
+    if (s.type==='bluff') {
+      const tot = s.totalPot+s.bet;
+      return `<strong>Break-even bluff freq:</strong> $${s.bet} into $${tot} → villain must bluff <strong>${s.potOddsPct.toFixed(1)}%</strong> for call to be +EV.<br>`
+           + `<strong>Villain's estimated bluff freq:</strong> <strong>${s.villainBluffPct}%</strong>.<br>`
+           + `<strong>Key:</strong> On river with a bluff-catcher, compare villain's bluff % vs the break-even % — no outs needed.<br>`
+           + conclude(s.diff, true);
+    }
+  }
+
+  // ── Utils ────────────────────────────────────────────────────
+
   function updateScore() {
-    document.getElementById('score-total').textContent = total;
+    document.getElementById('score-total').textContent   = total;
     document.getElementById('score-correct').textContent = correct;
-    document.getElementById('score-pct').textContent = total > 0 ? Math.round((correct/total)*100) + '%' : '—';
-
-    const streakEl = document.getElementById('streak-badge');
-    streakEl.textContent = '🔥 Streak: ' + streak;
-    streakEl.className = streak >= 3 ? 'streak-badge' : 'streak-badge cold';
-
-    const pct = total > 0 ? Math.min((correct / Math.max(total, 10)) * 100, 100) : 0;
-    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('score-pct').textContent     = total>0 ? Math.round(correct/total*100)+'%' : '—';
+    const el = document.getElementById('streak-badge');
+    el.textContent = '🔥 Streak: '+streak;
+    el.className   = streak>=3 ? 'streak-badge' : 'streak-badge cold';
+    document.getElementById('progress-bar').style.width = Math.min(correct/Math.max(total,10)*100,100)+'%';
   }
 
   function nextScenario() {
@@ -465,7 +455,6 @@
     renderScenario(current);
   }
 
-  // ─── Init ─────────────────────────────────────────────────
   nextScenario();
 </script>
 </body>
