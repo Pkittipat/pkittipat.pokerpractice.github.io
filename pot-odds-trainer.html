@@ -224,23 +224,29 @@
   }
 
   function genImplied(hard) {
-    const street = pk(['flop','turn']); // implied odds only matter when cards remain
+    const street = pk(['flop','turn']);
     const draw = pk(DRAWS.filter(d=>d.outs>=6));
-    const pot  = ri(hard?4:3, hard?20:12)*10;
+    const pot  = ri(hard?4:3, hard?20:12)*10;   // pot BEFORE villain bets
     const bet  = r5(pot * pk(hard?[.6,.8,1,1.3]:[.5,.75,1]));
-    const totalPot = pot+bet;
+    const totalPot = pot + bet;                  // pot after villain bets, before hero calls
+    const potAfterCall = totalPot + bet;         // pot after hero calls (pot + bet + call)
     const impliedExtra = r5(pk([.5,.75,1,1.5,2])*pot);
-    const potOddsPct   = bet/(totalPot+bet)*100;
+    // potOddsPct: hero pays `bet` to win `potAfterCall` total
+    const potOddsPct   = bet / potAfterCall * 100;
     const equityPct    = calcEquity(draw, street);
+    const eq = equityPct / 100;
     const ruleOf = street==='flop' ? draw.outs*4 : draw.outs*2;
     const cardsLeft = street==='flop' ? 2 : 1;
-    const unseen = street==='flop' ? 47 : 47; // both flop/turn have 47 unseen for next card
-    const effectiveCall= Math.max(bet - impliedExtra*(draw.outs/unseen), 5);
-    const impliedPotOdds= effectiveCall/(totalPot+effectiveCall)*100;
-    const diff = equityPct-potOddsPct, impliedDiff = equityPct-impliedPotOdds;
+    // EV = equity × (potAfterCall + impliedExtra) − (1−equity) × bet
+    const ev = eq*(potAfterCall + impliedExtra) - (1-eq)*bet;
+    // Break-even equity WITH implied: bet / (potAfterCall + impliedExtra)
+    const impliedBreakevenPct = bet / (potAfterCall + impliedExtra) * 100;
+    const diff = equityPct - potOddsPct;
+    const impliedDiff = equityPct - impliedBreakevenPct;
     const correct = impliedDiff>3?'call': diff>3?'call': (diff<-3&&impliedDiff<-3)?'fold':'marginal';
-    return { type:'implied', street, draw, pot, bet, totalPot, impliedExtra, ruleOf, cardsLeft,
-             potOddsPct, equityPct, impliedPotOdds, diff, impliedDiff, correctAnswer:correct,
+    return { type:'implied', street, draw, pot, bet, totalPot, potAfterCall, impliedExtra,
+             ruleOf, cardsLeft, potOddsPct, equityPct, impliedBreakevenPct, ev,
+             diff, impliedDiff, correctAnswer:correct,
              position:pk(POSITIONS), board:pk(BOARDS), villain:pk(VILLAINS) };
   }
 
@@ -413,13 +419,46 @@
            + conclude(s.diff);
     }
     if (s.type==='implied') {
-      const tot = s.totalPot+s.bet, mul = s.street==='flop'?4:2;
-      return `<strong>Street:</strong> ${s.street} — <strong>${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come</strong> → use ${ruleLabel(mul)}.<br>`
-           + `<strong>Raw pot odds:</strong> $${s.bet} into $${tot} → need <strong>${s.potOddsPct.toFixed(1)}%</strong> equity.<br>`
-           + `<strong>Your equity:</strong> ${s.draw.outs} outs → <strong>${s.equityPct.toFixed(1)}%</strong> &nbsp;<em style="opacity:0.45">(${mul}× shortcut: ~${s.ruleOf}%)</em><br>`
-           + `<strong>With implied odds:</strong> +$${s.impliedExtra} expected if you hit → effective required equity drops to ~<strong>${s.impliedPotOdds.toFixed(1)}%</strong>.<br>`
-           + `<strong>Key:</strong> Implied odds = (call − expected future winnings) ÷ new total pot.<br>`
-           + conclude(s.impliedDiff);
+      const tot = s.potAfterCall, mul = s.street==='flop'?4:2;
+      const evSign = s.ev >= 0 ? '+' : '';
+      const eq = s.equityPct/100;
+      const winAmt = (s.potAfterCall + s.impliedExtra).toFixed(0);
+      const loseAmt = s.bet;
+      const winPart = (eq * (s.potAfterCall + s.impliedExtra)).toFixed(1);
+      const losePart = ((1-eq) * s.bet).toFixed(1);
+      const displayDiff = s.diff;
+      const decisionDiff = s.impliedDiff;
+      let conclusion;
+      if (decisionDiff > 3 && displayDiff <= 3) {
+        conclusion = `Raw equity falls short by <strong>${Math.abs(displayDiff).toFixed(1)}%</strong> without implied odds — but implied odds flip this to a <strong>profitable call</strong>.`;
+      } else if (decisionDiff > 3) {
+        conclusion = `Equity exceeds even raw pot odds by <strong>+${displayDiff.toFixed(1)}%</strong> — profitable with or without implied odds.`;
+      } else if (decisionDiff < -3) {
+        conclusion = `Equity falls short by <strong>${Math.abs(decisionDiff).toFixed(1)}%</strong> even with implied odds — fold.`;
+      } else {
+        conclusion = `Within 3% even with implied odds — genuinely marginal. Use position and reads.`;
+      }
+      return `<strong>Street:</strong> ${s.street} — <strong>${s.cardsLeft} card${s.cardsLeft>1?'s':''} to come</strong> → use ${ruleLabel(mul)}.<br><br>`
+
+           + `<strong>① Raw pot odds (no implied):</strong><br>`
+           + `Call $${s.bet} into pot $${s.totalPot} → total pot = $${tot}.<br>`
+           + `Need: $${s.bet} ÷ $${tot} = <strong>${s.potOddsPct.toFixed(1)}%</strong> equity to break even.<br><br>`
+
+           + `<strong>② Your equity:</strong><br>`
+           + `${s.draw.outs} outs → exact <strong>${s.equityPct.toFixed(1)}%</strong> &nbsp;<em style="opacity:0.45">(${mul}× shortcut: ~${s.ruleOf}%)</em><br><br>`
+
+           + `<strong>③ Implied odds break-even:</strong><br>`
+           + `If you hit, you win the pot <strong>$${tot}</strong> + estimated future winnings <strong>$${s.impliedExtra}</strong> = <strong>$${winAmt}</strong> total.<br>`
+           + `New break-even = call ÷ total winnings = $${s.bet} ÷ $${winAmt} = <strong>${s.impliedBreakevenPct.toFixed(1)}%</strong>.<br>`
+           + `<em style="opacity:0.5">Why? You only need to win often enough to cover your call. Bigger future winnings → lower % needed.</em><br><br>`
+
+           + `<strong>④ EV calculation:</strong><br>`
+           + `EV = (equity × win amount) − (miss% × call)<br>`
+           + `EV = (${s.equityPct.toFixed(1)}% × $${winAmt}) − (${((1-eq)*100).toFixed(1)}% × $${loseAmt})<br>`
+           + `EV = $${winPart} − $${losePart} = <strong>${evSign}$${s.ev.toFixed(1)}</strong><br>`
+           + `<em style="opacity:0.5">Positive EV = profitable call on average. Negative EV = losing call on average.</em><br><br>`
+
+           + conclusion;
     }
     if (s.type==='multi') {
       const tot = s.totalPot+s.bet;
