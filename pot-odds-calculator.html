@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pot Odds Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #00c853;
+    --green-dim: rgba(0,200,83,0.15);
+    --red: #ff3d3d;
+    --red-dim: rgba(255,61,61,0.15);
+    --gold: #f5c842;
+    --gold-dim: rgba(245,200,66,0.12);
+    --bg: #0d1117;
+    --felt: #0f1a13;
+    --card: #151c1f;
+    --border: rgba(255,255,255,0.08);
+    --text: rgba(255,255,255,0.85);
+    --muted: rgba(255,255,255,0.3);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Felt texture background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,80,30,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0,40,15,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Card suit watermarks */
+  body::after {
+    content: '♠ ♥ ♦ ♣';
+    position: fixed;
+    bottom: 20px; right: 24px;
+    font-size: 1.1rem;
+    letter-spacing: 8px;
+    color: rgba(255,255,255,0.04);
+    pointer-events: none;
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 520px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  header {
+    margin-bottom: 28px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: #fff;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .suit-accent {
+    font-size: 1.4rem;
+    color: var(--gold);
+    opacity: 0.8;
+  }
+
+  .subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  }
+
+  .panel-title {
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Input rows */
+  .input-group {
+    margin-bottom: 18px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(245,200,66,0.08);
+  }
+
+  .currency {
+    padding: 0 14px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    height: 48px;
+    display: flex;
+    align-items: center;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0 16px;
+    height: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    width: 100%;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .input-hint {
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.2);
+    margin-top: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Two column grid */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* Outs section */
+  .outs-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .out-badge {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .out-badge:hover {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Street toggle */
+  .street-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .street-btn {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .street-btn.active {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Result panel */
+  .result {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 12px;
+    transition: all 0.4s ease;
+  }
+
+  .result.call { border-color: rgba(0,200,83,0.35); background: rgba(0,30,10,0.6); }
+  .result.fold { border-color: rgba(255,61,61,0.35); background: rgba(30,0,0,0.6); }
+  .result.close { border-color: rgba(245,200,66,0.35); background: rgba(30,25,0,0.5); }
+
+  .verdict {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+
+  .verdict.call { color: var(--green); }
+  .verdict.fold { color: var(--red); }
+  .verdict.close { color: var(--gold); }
+  .verdict.neutral { color: rgba(255,255,255,0.2); }
+
+  .verdict-sub {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .stat-box {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* EV bar */
+  .ev-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .ev-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .ev-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .ev-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    transition: color 0.3s;
+  }
+
+  .ev-track {
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ev-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s cubic-bezier(0.16,1,0.3,1), background 0.3s;
+    min-width: 2px;
+  }
+
+  /* Breakeven line */
+  .breakeven-marker {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+
+  .breakeven-marker span {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* Reset btn */
+  .reset-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: #fff;
+  }
+
+  @media (max-width: 420px) {
+    .two-col { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="header-top">
+      <h1>Pot Odds</h1>
+      <span class="suit-accent">♦</span>
+    </div>
+    <div class="subtitle">Real-time call / fold calculator</div>
+  </header>
+
+  <!-- Inputs -->
+  <div class="panel">
+    <div class="panel-title">Pot & Bet Size</div>
+
+    <div class="two-col">
+      <div class="input-group">
+        <label>Current Pot</label>
+        <div class="input-row">
+          <span class="currency">$</span>
+          <input type="number" id="pot" min="0" placeholder="0" oninput="calc()">
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Opponent's Bet</label>
+        <div class="input-row">
+          <span class="currency">$</span>
+          <input type="number" id="bet" min="0" placeholder="0" oninput="calc()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Your Outs</div>
+
+    <div class="street-toggle">
+      <button class="street-btn active" id="btn-turn" onclick="setStreet('turn')">Turn (47 unseen)</button>
+      <button class="street-btn" id="btn-river" onclick="setStreet('river')">River (46 unseen)</button>
+    </div>
+
+    <div class="input-group">
+      <label>Number of Outs</label>
+      <div class="input-row">
+        <input type="number" id="outs" min="0" max="20" placeholder="0" oninput="calc()" style="padding-left:16px">
+      </div>
+      <div class="input-hint">Cards that complete your drawing hand</div>
+    </div>
+
+    <div class="outs-row">
+      <div class="out-badge" onclick="setOuts(4)">Gut-shot 4</div>
+      <div class="out-badge" onclick="setOuts(8)">Open-ended 8</div>
+      <div class="out-badge" onclick="setOuts(9)">Flush draw 9</div>
+      <div class="out-badge" onclick="setOuts(15)">Combo draw 15</div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result" id="result">
+    <div class="verdict neutral" id="verdict">— — —</div>
+    <div class="verdict-sub" id="verdict-sub">Enter values above to calculate</div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="pot-odds-pct">—</div>
+        <div class="stat-label">Pot Odds %</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="equity-pct">—</div>
+        <div class="stat-label">Your Equity</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="odds-ratio">—</div>
+        <div class="stat-label">Ratio</div>
+      </div>
+    </div>
+
+    <div class="ev-section">
+      <div class="ev-label-row">
+        <span class="ev-label">Required equity vs your equity</span>
+        <span class="ev-value" id="ev-text">—</span>
+      </div>
+      <div class="ev-track">
+        <div class="ev-bar" id="ev-bar" style="width:0%"></div>
+      </div>
+      <div class="breakeven-marker" id="breakeven-text"></div>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ Reset</button>
+
+</div>
+
+<script>
+  let street = 'turn';
+  const UNSEEN = { turn: 47, river: 46 };
+
+  function setStreet(s) {
+    street = s;
+    document.getElementById('btn-turn').classList.toggle('active', s === 'turn');
+    document.getElementById('btn-river').classList.toggle('active', s === 'river');
+    calc();
+  }
+
+  function setOuts(n) {
+    document.getElementById('outs').value = n;
+    calc();
+  }
+
+  function fmt(n) {
+    if (isNaN(n) || !isFinite(n)) return '—';
+    return n.toFixed(1) + '%';
+  }
+
+  function calc() {
+    const pot = parseFloat(document.getElementById('pot').value) || 0;
+    const bet = parseFloat(document.getElementById('bet').value) || 0;
+    const outs = parseFloat(document.getElementById('outs').value) || 0;
+
+    const result = document.getElementById('result');
+    const verdict = document.getElementById('verdict');
+    const verdictSub = document.getElementById('verdict-sub');
+
+    if (pot <= 0 && bet <= 0 && outs <= 0) {
+      resetDisplay(); return;
+    }
+
+    // Pot odds: how much do we need to call vs total pot after calling
+    const totalPot = pot + bet;
+    const potOdds = bet > 0 ? (bet / (totalPot + bet)) * 100 : 0;
+
+    // Equity from outs (rule of 2 and 4)
+    const unseen = UNSEEN[street];
+    const equity = outs > 0 ? (outs / unseen) * 100 : 0;
+
+    // Ratio: pot : bet
+    let ratio = '—';
+    if (bet > 0) {
+      const r = totalPot / bet;
+      ratio = r.toFixed(1) + ':1';
+    }
+
+    // Display
+    document.getElementById('pot-odds-pct').textContent = bet > 0 ? fmt(potOdds) : '—';
+    document.getElementById('equity-pct').textContent = outs > 0 ? fmt(equity) : '—';
+    document.getElementById('odds-ratio').textContent = ratio;
+
+    // Breakeven
+    if (bet > 0) {
+      document.getElementById('breakeven-text').innerHTML =
+        `Breakeven: need <span>${fmt(potOdds)}</span> equity to call $${bet}`;
+    } else {
+      document.getElementById('breakeven-text').innerHTML = '';
+    }
+
+    // EV bar & verdict
+    if (outs > 0 && bet > 0) {
+      const diff = equity - potOdds;
+      const barPct = Math.min(Math.max((equity / Math.max(potOdds * 2, equity * 1.5, 30)) * 100, 2), 100);
+
+      const evBar = document.getElementById('ev-bar');
+      const evText = document.getElementById('ev-text');
+
+      if (diff > 3) {
+        // Clear call
+        result.className = 'result call';
+        verdict.className = 'verdict call';
+        verdict.textContent = 'CALL';
+        verdictSub.textContent = `You have +${diff.toFixed(1)}% edge — profitable call`;
+        evBar.style.background = 'linear-gradient(90deg, #00c853, #69f0ae)';
+        evText.style.color = '#00c853';
+        evText.textContent = `Equity ${fmt(equity)} > Required ${fmt(potOdds)}`;
+      } else if (diff < -3) {
+        // Clear fold
+        result.className = 'result fold';
+        verdict.className = 'verdict fold';
+        verdict.textContent = 'FOLD';
+        verdictSub.textContent = `You lack ${Math.abs(diff).toFixed(1)}% equity — losing call`;
+        evBar.style.background = 'linear-gradient(90deg, #ff3d3d, #ff8a80)';
+        evText.style.color = '#ff3d3d';
+        evText.textContent = `Equity ${fmt(equity)} < Required ${fmt(potOdds)}`;
+      } else {
+        // Close / marginal
+        result.className = 'result close';
+        verdict.className = 'verdict close';
+        verdict.textContent = 'MARGINAL';
+        verdictSub.textContent = `Within 3% — consider position & reads`;
+        evBar.style.background = 'linear-gradient(90deg, #f5c842, #ffe082)';
+        evText.style.color = '#f5c842';
+        evText.textContent = `Equity ${fmt(equity)} ≈ Required ${fmt(potOdds)}`;
+      }
+
+      evBar.style.width = barPct + '%';
+
+    } else if (bet > 0 && outs === 0) {
+      result.className = 'result';
+      verdict.className = 'verdict neutral';
+      verdict.textContent = fmt(potOdds);
+      verdictSub.textContent = 'Required equity to call — enter outs for full analysis';
+      document.getElementById('ev-bar').style.width = '0%';
+      document.getElementById('ev-text').textContent = '—';
+    } else {
+      resetDisplay();
+    }
+  }
+
+  function resetDisplay() {
+    document.getElementById('result').className = 'result';
+    document.getElementById('verdict').className = 'verdict neutral';
+    document.getElementById('verdict').textContent = '— — —';
+    document.getElementById('verdict-sub').textContent = 'Enter values above to calculate';
+    document.getElementById('pot-odds-pct').textContent = '—';
+    document.getElementById('equity-pct').textContent = '—';
+    document.getElementById('odds-ratio').textContent = '—';
+    document.getElementById('ev-bar').style.width = '0%';
+    document.getElementById('ev-text').textContent = '—';
+    document.getElementById('breakeven-text').innerHTML = '';
+  }
+
+  function resetAll() {
+    document.getElementById('pot').value = '';
+    document.getElementById('bet').value = '';
+    document.getElementById('outs').value = '';
+    resetDisplay();
+  }
+</script>
+</body>
+</html>
