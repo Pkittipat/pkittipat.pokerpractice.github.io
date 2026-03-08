@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Player Types</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --card-bg: #111118;
+    --border: rgba(255,255,255,0.07);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 48px 24px;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header { text-align: center; margin-bottom: 56px; }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  header h1 span {
+    background: linear-gradient(135deg, #d4af37, #f5d97a, #d4af37);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header p {
+    color: rgba(255,255,255,0.35);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 12px;
+  }
+
+  /* Axis legend */
+  .axis-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+  .axis-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+  .axis-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+    margin: 0 12px;
+  }
+
+  /* Matrix grid */
+  .matrix {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .quadrant-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+
+  .player-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .player-card:hover {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  /* Color accent top bar */
+  .player-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Glow effect */
+  .player-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .player-card:hover::after { opacity: 1; }
+
+  /* FISH — red */
+  .fish { border-color: rgba(239,68,68,0.25); }
+  .fish::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+  .fish::after { box-shadow: inset 0 0 60px rgba(239,68,68,0.06); }
+  .fish:hover { box-shadow: 0 20px 60px rgba(239,68,68,0.15); }
+  .fish .accent { color: #f87171; }
+  .fish .chip { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.3); }
+
+  /* TAG — blue */
+  .tag { border-color: rgba(59,130,246,0.25); }
+  .tag::before { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+  .tag::after { box-shadow: inset 0 0 60px rgba(59,130,246,0.06); }
+  .tag:hover { box-shadow: 0 20px 60px rgba(59,130,246,0.15); }
+  .tag .accent { color: #60a5fa; }
+  .tag .chip { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+
+  /* LAG — purple */
+  .lag { border-color: rgba(168,85,247,0.25); }
+  .lag::before { background: linear-gradient(90deg, #a855f7, #ec4899); }
+  .lag::after { box-shadow: inset 0 0 60px rgba(168,85,247,0.06); }
+  .lag:hover { box-shadow: 0 20px 60px rgba(168,85,247,0.15); }
+  .lag .accent { color: #c084fc; }
+  .lag .chip { background: rgba(168,85,247,0.12); color: #c084fc; border-color: rgba(168,85,247,0.3); }
+
+  /* NITE — green */
+  .nite { border-color: rgba(34,197,94,0.25); }
+  .nite::before { background: linear-gradient(90deg, #22c55e, #10b981); }
+  .nite::after { box-shadow: inset 0 0 60px rgba(34,197,94,0.06); }
+  .nite:hover { box-shadow: 0 20px 60px rgba(34,197,94,0.15); }
+  .nite .accent { color: #4ade80; }
+  .nite .chip { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.3); }
+
+  /* TRAPPER — gold */
+  .trapper { border-color: rgba(212,175,55,0.3); grid-column: span 2; }
+  .trapper::before { background: linear-gradient(90deg, #d4af37, #f5d97a, #d4af37); }
+  .trapper::after { box-shadow: inset 0 0 80px rgba(212,175,55,0.07); }
+  .trapper:hover { box-shadow: 0 20px 60px rgba(212,175,55,0.2); }
+  .trapper .accent { color: #f5d97a; }
+  .trapper .chip { background: rgba(212,175,55,0.12); color: #f5d97a; border-color: rgba(212,175,55,0.35); }
+
+  .player-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .player-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .player-full {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .player-desc {
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 20px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .chip {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .trapper .stats { grid-template-columns: repeat(4, 1fr); }
+
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+  .stat-bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .stat-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  /* TRAPPER special badge */
+  .featured-badge {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(212,175,55,0.15);
+    border: 1px solid rgba(212,175,55,0.4);
+    color: #f5d97a;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .trapper-content { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+  /* Danger meter */
+  .danger-ring {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 500;
+    position: absolute;
+    top: 24px; right: 20px;
+    border: 2px solid;
+  }
+
+  .exploit-section {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 16px;
+  }
+  .exploit-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 8px;
+  }
+  .exploit-text {
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Animate bars on load */
+  @keyframes barIn {
+    from { width: 0 !important; }
+  }
+  .stat-bar { animation: barIn 1s cubic-bezier(0.16,1,0.3,1) both; }
+
+  /* Card entrance */
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .player-card {
+    animation: cardIn 0.6s ease both;
+  }
+  .player-card:nth-child(1) { animation-delay: 0.05s; }
+  .player-card:nth-child(2) { animation-delay: 0.15s; }
+  .player-card:nth-child(3) { animation-delay: 0.25s; }
+  .player-card:nth-child(4) { animation-delay: 0.35s; }
+  .player-card:nth-child(5) { animation-delay: 0.45s; }
+
+  .section-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    margin: 32px 0 12px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+  }
+
+  @media (max-width: 580px) {
+    .matrix { grid-template-columns: 1fr; }
+    .trapper { grid-column: span 1; }
+    .trapper-content { grid-template-columns: 1fr; gap: 0; }
+    .trapper .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Poker <span>Player Types</span></h1>
+    <p>Know your enemy at the table</p>
+  </header>
+
+  <!-- Axis labels -->
+  <div class="axis-legend">
+    <span class="axis-label">Passive</span>
+    <div class="axis-line"></div>
+    <span class="axis-label">↔ Aggression Axis ↔</span>
+    <div class="axis-line"></div>
+    <span class="axis-label">Aggressive</span>
+  </div>
+
+  <div class="matrix">
+
+    <!-- FISH -->
+    <div class="player-card fish">
+      <span class="player-icon">🐟</span>
+      <div class="player-name accent">Fish</div>
+      <div class="player-full accent">Loose Passive</div>
+      <p class="player-desc">Plays too many hands, rarely folds, calls everything down. The ATM of the table — gives money freely to better players.</p>
+      <div class="chips">
+        <span class="chip">Loose</span>
+        <span class="chip">Passive</span>
+        <span class="chip">Calling Station</span>
+        <span class="chip">Weak</span>
+      </div>
+      <div class="exploit-section">
+        <div class="exploit-title">⚡ How to exploit</div>
+        <div class="exploit-text">Value bet relentlessly. Never bluff. They'll call you down with any pair.</div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">VPIP</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:75%; background: linear-gradient(90deg,#ef4444,#f97316); animation-delay:0.6s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Aggression</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:15%; background: linear-gradient(90deg,#ef4444,#f97316); animation-delay:0.7s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Fold to Bet</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:20%; background: linear-gradient(90deg,#ef4444,#f97316); animation-delay:0.8s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Danger</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:20%; background: linear-gradient(90deg,#ef4444,#f97316); animation-delay:0.9s"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAG -->
+    <div class="player-card tag">
+      <span class="player-icon">🎯</span>
+      <div class="player-name accent">TAG</div>
+      <div class="player-full accent">Tight Aggressive</div>
+      <p class="player-desc">The gold standard. Plays few hands but plays them hard. Bets and raises with strong holdings. Very hard to read.</p>
+      <div class="chips">
+        <span class="chip">Tight</span>
+        <span class="chip">Aggressive</span>
+        <span class="chip">Selective</span>
+        <span class="chip">Dangerous</span>
+      </div>
+      <div class="exploit-section">
+        <div class="exploit-title">⚡ How to exploit</div>
+        <div class="exploit-text">Re-steal their blinds. They fold too much pre-flop. Be cautious when they show strength.</div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">VPIP</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:22%; background: linear-gradient(90deg,#3b82f6,#6366f1); animation-delay:0.6s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Aggression</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:75%; background: linear-gradient(90deg,#3b82f6,#6366f1); animation-delay:0.7s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Fold to Bet</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:60%; background: linear-gradient(90deg,#3b82f6,#6366f1); animation-delay:0.8s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Danger</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:80%; background: linear-gradient(90deg,#3b82f6,#6366f1); animation-delay:0.9s"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NITE (Nit) -->
+    <div class="player-card nite">
+      <span class="player-icon">🪨</span>
+      <div class="player-name accent">Nit</div>
+      <div class="player-full accent">Ultra Tight Passive</div>
+      <p class="player-desc">Only plays the nuts. Folds everything marginal. Extremely predictable — when they bet, run away. Easy to bluff off pots.</p>
+      <div class="chips">
+        <span class="chip">Ultra Tight</span>
+        <span class="chip">Passive</span>
+        <span class="chip">Risk Averse</span>
+        <span class="chip">Predictable</span>
+      </div>
+      <div class="exploit-section">
+        <div class="exploit-title">⚡ How to exploit</div>
+        <div class="exploit-text">Steal their blinds constantly. Bluff them off any board. Fold immediately when they raise.</div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">VPIP</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:10%; background: linear-gradient(90deg,#22c55e,#10b981); animation-delay:0.6s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Aggression</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:20%; background: linear-gradient(90deg,#22c55e,#10b981); animation-delay:0.7s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Fold to Bet</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:85%; background: linear-gradient(90deg,#22c55e,#10b981); animation-delay:0.8s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Danger</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:30%; background: linear-gradient(90deg,#22c55e,#10b981); animation-delay:0.9s"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAG -->
+    <div class="player-card lag">
+      <span class="player-icon">🔥</span>
+      <div class="player-name accent">LAG</div>
+      <div class="player-full accent">Loose Aggressive</div>
+      <p class="player-desc">Plays many hands with relentless aggression. Bluffs often. Either a genius or a maniac — hard to tell which until it's too late.</p>
+      <div class="chips">
+        <span class="chip">Loose</span>
+        <span class="chip">Aggressive</span>
+        <span class="chip">Unpredictable</span>
+        <span class="chip">Pressure</span>
+      </div>
+      <div class="exploit-section">
+        <div class="exploit-title">⚡ How to exploit</div>
+        <div class="exploit-text">Trap them with big hands. Widen your calling range. Let them bluff into your monsters.</div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">VPIP</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:55%; background: linear-gradient(90deg,#a855f7,#ec4899); animation-delay:0.6s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Aggression</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:90%; background: linear-gradient(90deg,#a855f7,#ec4899); animation-delay:0.7s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Fold to Bet</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:30%; background: linear-gradient(90deg,#a855f7,#ec4899); animation-delay:0.8s"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Danger</span>
+          <div class="stat-bar-track"><div class="stat-bar" style="width:90%; background: linear-gradient(90deg,#a855f7,#ec4899); animation-delay:0.9s"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TRAPPER featured card -->
+  <p class="section-title">★ Featured Type</p>
+
+  <div class="player-card trapper">
+    <span class="featured-badge">Slow Player</span>
+    <div class="trapper-content">
+      <div>
+        <span class="player-icon">🕷️</span>
+        <div class="player-name accent">Trapper</div>
+        <div class="player-full accent">The Slow Player</div>
+        <p class="player-desc">Checks disguise monster hands. Hits a set on the turn? Checks. Flops the nuts? Checks. Lures opponents into betting their whole stack into a dead pot. Patient, deceptive, and lethal when the trap springs.</p>
+        <div class="chips">
+          <span class="chip">Deceptive</span>
+          <span class="chip">Patient</span>
+          <span class="chip">Check-Raise</span>
+          <span class="chip">Traps</span>
+          <span class="chip">Set Mining</span>
+        </div>
+      </div>
+      <div>
+        <div class="exploit-section" style="margin-top:0;">
+          <div class="exploit-title">⚡ How to exploit</div>
+          <div class="exploit-text">When they check back on a dry board, check behind — don't bluff into them. Be cautious when they wake up with sudden aggression. Their bet on the river often means the nuts.</div>
+        </div>
+        <div class="exploit-section" style="margin-top: 10px;">
+          <div class="exploit-title">⚠️ Their Weakness</div>
+          <div class="exploit-text">By checking strong hands, they give free cards to flush/straight draws. They miss value from calling hands. A disciplined TAG won't pay them off on the river.</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">VPIP</span>
+        <div class="stat-bar-track"><div class="stat-bar" style="width:28%; background: linear-gradient(90deg,#d4af37,#f5d97a); animation-delay:0.8s"></div></div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Pre-flop Aggression</span>
+        <div class="stat-bar-track"><div class="stat-bar" style="width:40%; background: linear-gradient(90deg,#d4af37,#f5d97a); animation-delay:0.9s"></div></div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Post-flop Passivity</span>
+        <div class="stat-bar-track"><div class="stat-bar" style="width:80%; background: linear-gradient(90deg,#d4af37,#f5d97a); animation-delay:1.0s"></div></div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Danger (when betting)</span>
+        <div class="stat-bar-track"><div class="stat-bar" style="width:95%; background: linear-gradient(90deg,#d4af37,#f5d97a); animation-delay:1.1s"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>♠ ♥ Know the player, own the table ♦ ♣</footer>
+
+</div>
+</body>
+</html>
