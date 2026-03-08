@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTT Preflop Ranges</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --card: #151c1f; --border: rgba(255,255,255,0.08);
+    --muted: rgba(255,255,255,0.28); --text: rgba(255,255,255,0.85);
+    --gold: #f5c842; --green: #00c853; --red: #ff3d3d; --blue: #4fc3f7; --orange: #ffb74d; --purple: #ce93d8;
+    --raise: #f5c842; --call: #4fc3f7; --limp: #a5d6a7;
+  }
+  body { background: var(--bg); font-family: 'IBM Plex Mono', monospace; min-height: 100vh; padding: 18px; color: var(--text); }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,80,30,0.15) 0%, transparent 70%); }
+  .wrapper { max-width: 1020px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  h1 { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:0.05em; line-height:1; }
+  h1 span { color:var(--gold); }
+  .subtitle { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+
+  .stack-group { display:flex; flex-direction:column; gap:5px; }
+  .stack-label { font-size:0.54rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); }
+  .stack-row   { display:flex; gap:5px; }
+  .stack-btn {
+    padding:6px 13px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(0,0,0,0.3); font-family:'IBM Plex Mono',monospace;
+    font-size:0.6rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--muted); cursor:pointer; transition:all 0.15s;
+  }
+  .stack-btn:hover { color:#fff; border-color:rgba(255,255,255,0.2); }
+  .stack-btn.active-deep   { background:rgba(0,200,83,0.15);  border-color:var(--green);  color:var(--green); }
+  .stack-btn.active-medium { background:rgba(245,200,66,0.15);border-color:var(--gold);   color:var(--gold); }
+  .stack-btn.active-short  { background:rgba(255,61,61,0.15); border-color:var(--red);    color:var(--red); }
+
+  .pos-row { display:flex; gap:5px; margin-bottom:12px; flex-wrap:wrap; }
+  .pos-btn {
+    padding:7px 13px; border-radius:999px; border:1px solid var(--border);
+    background:rgba(0,0,0,0.3); font-family:'IBM Plex Mono',monospace;
+    font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--muted); cursor:pointer; transition:all 0.15s;
+  }
+  .pos-btn:hover { color:#fff; border-color:rgba(255,255,255,0.2); }
+  .pos-btn.active { background:rgba(245,200,66,0.15); border-color:var(--gold); color:var(--gold); }
+
+  .action-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .act-label { font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-right:2px; }
+  .act-btn {
+    padding:5px 12px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(0,0,0,0.3); font-family:'IBM Plex Mono',monospace;
+    font-size:0.6rem; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--muted); cursor:pointer; transition:all 0.15s;
+  }
+  .act-btn:hover { color:#fff; }
+  .act-btn.active-raise { background:rgba(245,200,66,0.15); border-color:var(--raise); color:var(--raise); }
+  .act-btn.active-call  { background:rgba(79,195,247,0.15); border-color:var(--call);  color:var(--call); }
+  .act-btn.active-limp  { background:rgba(165,214,167,0.15);border-color:var(--limp);  color:var(--limp); }
+  .act-btn.active-all   { background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.25);color:#fff; }
+  .act-btn.active-edit  { background:rgba(206,147,216,0.12);border-color:var(--purple);color:var(--purple); }
+
+  .notice { display:none; border-radius:8px; padding:9px 12px; font-size:0.59rem; line-height:1.7; color:rgba(255,255,255,0.55); margin-bottom:10px; }
+  .notice.show { display:block; }
+  .notice.pf   { background:rgba(255,61,61,0.07);  border:1px solid rgba(255,61,61,0.22); }
+  .notice.edit { background:rgba(206,147,216,0.06);border:1px solid rgba(206,147,216,0.22); }
+  .notice .nt  { color:var(--red); font-weight:600; }
+  .notice.edit .nt { color:var(--purple); font-weight:600; }
+
+  .main { display:grid; grid-template-columns:1fr 210px; gap:12px; }
+
+  .grid-panel { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; position:relative; overflow:hidden; }
+  .grid-panel::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); }
+  .grid-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px; }
+  .grid-title { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+  .grid-note  { font-size:0.48rem; color:var(--muted); opacity:0.55; }
+
+  .hand-grid { display:grid; grid-template-columns:repeat(13,1fr); gap:2px; user-select:none; }
+  .cell {
+    aspect-ratio:1; border-radius:3px; border:1px solid rgba(255,255,255,0.05);
+    background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center;
+    font-size:clamp(0.28rem,0.82vw,0.5rem); font-weight:600;
+    color:rgba(255,255,255,0.18); cursor:pointer; transition:all 0.1s;
+  }
+  .cell:hover { border-color:rgba(255,255,255,0.3); transform:scale(1.12); z-index:5; }
+  .cell.raise { background:rgba(245,200,66,0.28); border-color:rgba(245,200,66,0.55); color:#fff; }
+  .cell.call  { background:rgba(79,195,247,0.28); border-color:rgba(79,195,247,0.55); color:#fff; }
+  .cell.limp  { background:rgba(165,214,167,0.28);border-color:rgba(165,214,167,0.55);color:#fff; }
+  .cell.push  { background:rgba(255,107,0,0.32);  border-color:rgba(255,107,0,0.58);  color:#fff; }
+
+  .side { display:flex; flex-direction:column; gap:10px; }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; position:relative; overflow:hidden; }
+  .panel::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent); }
+  .panel-title { font-size:0.52rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+
+  .stat-row  { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .stat-name { font-size:0.58rem; color:var(--muted); }
+  .stat-val  { font-size:1.05rem; font-weight:600; color:#fff; }
+  .stat-val.gold { color:var(--gold); }
+  .breakdown { margin-top:10px; display:flex; flex-direction:column; gap:5px; }
+  .bd-row    { display:flex; align-items:center; gap:6px; }
+  .bd-dot    { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .bd-label  { font-size:0.54rem; color:var(--muted); flex:1; text-transform:uppercase; letter-spacing:0.07em; }
+  .bd-pct    { font-size:0.58rem; font-weight:600; color:#fff; min-width:28px; text-align:right; }
+  .bd-track  { flex:2; height:3px; background:rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; }
+  .bd-bar    { height:100%; border-radius:999px; transition:width 0.3s; }
+
+  .ctx-text  { font-size:0.59rem; line-height:1.72; color:rgba(255,255,255,0.48); }
+  .ctx-text strong { color:var(--gold); font-weight:500; }
+  .ctx-text .icm { color:var(--orange); }
+  .ctx-text .tip { color:var(--blue); }
+
+  .legend   { display:flex; flex-direction:column; gap:5px; }
+  .leg-item { display:flex; align-items:center; gap:8px; font-size:0.56rem; color:var(--muted); }
+  .leg-sw   { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+  .reset-btn { width:100%; padding:7px; border-radius:8px; border:1px solid rgba(255,61,61,0.22); background:rgba(255,61,61,0.06); font-family:'IBM Plex Mono',monospace; font-size:0.55rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--red); cursor:pointer; transition:all 0.15s; margin-top:8px; }
+  .reset-btn:hover { background:rgba(255,61,61,0.15); }
+  .tip { position:fixed; background:#1e2530; border:1px solid rgba(245,200,66,0.3); border-radius:8px; padding:8px 12px; font-size:0.61rem; line-height:1.65; color:rgba(255,255,255,0.8); pointer-events:none; z-index:100; opacity:0; transition:opacity 0.12s; max-width:200px; }
+  @media(max-width:620px){ .main{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div>
+    <h1>MTT <span>Ranges</span></h1>
+    <div class="subtitle">♠ 8-position preflop charts — UTG / UTG+1 / LJ / HJ / CO / BTN / SB / BB</div>
+  </div>
+  <div class="stack-group">
+    <div class="stack-label">Stack Depth</div>
+    <div class="stack-row">
+      <button class="stack-btn active-deep"   id="sb-deep"   onclick="setStack('deep')">🟢 Deep 100BB+</button>
+      <button class="stack-btn"               id="sb-medium" onclick="setStack('medium')">🟡 Mid 40–60BB</button>
+      <button class="stack-btn"               id="sb-short"  onclick="setStack('short')">🔴 Short 20–30BB</button>
+    </div>
+  </div>
+</header>
+
+<div class="pos-row">
+  <button class="pos-btn active" onclick="setPos('UTG')">UTG</button>
+  <button class="pos-btn"        onclick="setPos('UTG1')">UTG+1</button>
+  <button class="pos-btn"        onclick="setPos('LJ')">LJ</button>
+  <button class="pos-btn"        onclick="setPos('HJ')">HJ</button>
+  <button class="pos-btn"        onclick="setPos('CO')">CO</button>
+  <button class="pos-btn"        onclick="setPos('BTN')">BTN</button>
+  <button class="pos-btn"        onclick="setPos('SB')">SB</button>
+  <button class="pos-btn"        onclick="setPos('BB')">BB</button>
+</div>
+
+<div class="action-row">
+  <span class="act-label">Show:</span>
+  <button class="act-btn active-raise" id="act-raise" onclick="setAction('raise')">🟡 Raise/Push</button>
+  <button class="act-btn" id="act-call"  onclick="setAction('call')">🔵 Call</button>
+  <button class="act-btn" id="act-limp"  onclick="setAction('limp')">🟢 Limp</button>
+  <button class="act-btn" id="act-all"   onclick="setAction('all')">All</button>
+  <button class="act-btn" id="act-edit"  onclick="setAction('edit')">✏ Edit</button>
+</div>
+
+<div class="notice pf" id="pf-notice">
+  <span class="nt">⚠ Push/Fold Territory (20–30BB)</span> — Min-raises are exploitable at this depth. Shove all-in or fold. Grid shows <strong style="color:var(--orange)">push range in orange</strong>. Near bubble: tighten vs big stacks, widen vs short stacks due to ICM pressure.
+</div>
+<div class="notice edit" id="edit-notice">
+  <span class="nt">✏ Edit Mode</span> — Click cells to cycle: Raise → Call → Limp → Fold. Drag to paint multiple cells. Reset restores defaults.
+</div>
+
+<div class="main">
+  <div class="grid-panel">
+    <div class="grid-header">
+      <div class="grid-title" id="grid-title">UTG — Raise · Deep 100BB+</div>
+      <div class="grid-note">suited top-right · pairs diagonal · offsuit bottom-left</div>
+    </div>
+    <div class="hand-grid" id="hand-grid"></div>
+  </div>
+
+  <div class="side">
+    <div class="panel">
+      <div class="panel-title">Range Stats</div>
+      <div class="stat-row">
+        <span class="stat-name">Combos</span>
+        <span class="stat-val gold" id="s-combos">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-name">% of hands</span>
+        <span class="stat-val" id="s-pct">0%</span>
+      </div>
+      <div class="breakdown">
+        <div class="bd-row">
+          <div class="bd-dot" style="background:var(--raise)"></div>
+          <span class="bd-label">Raise</span>
+          <div class="bd-track"><div class="bd-bar" id="b-raise" style="background:var(--raise)"></div></div>
+          <span class="bd-pct" id="p-raise">0</span>
+        </div>
+        <div class="bd-row">
+          <div class="bd-dot" style="background:var(--call)"></div>
+          <span class="bd-label">Call</span>
+          <div class="bd-track"><div class="bd-bar" id="b-call" style="background:var(--call)"></div></div>
+          <span class="bd-pct" id="p-call">0</span>
+        </div>
+        <div class="bd-row">
+          <div class="bd-dot" style="background:var(--limp)"></div>
+          <span class="bd-label">Limp</span>
+          <div class="bd-track"><div class="bd-bar" id="b-limp" style="background:var(--limp)"></div></div>
+          <span class="bd-pct" id="p-limp">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Notes & ICM</div>
+      <div class="ctx-text" id="ctx-text"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Legend</div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-sw" style="background:rgba(245,200,66,0.4)"></div>Raise / Open</div>
+        <div class="leg-item"><div class="leg-sw" style="background:rgba(79,195,247,0.4)"></div>Call / Defend</div>
+        <div class="leg-item"><div class="leg-sw" style="background:rgba(165,214,167,0.4)"></div>Limp (SB)</div>
+        <div class="leg-item"><div class="leg-sw" style="background:rgba(255,107,0,0.4)"></div>Push all-in (short)</div>
+        <div class="leg-item"><div class="leg-sw" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08)"></div>Fold</div>
+      </div>
+      <button class="reset-btn" onclick="resetEdits()">↺ Reset to Default</button>
+    </div>
+  </div>
+</div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const TOTAL=1326;
+const POSITIONS=['UTG','UTG1','LJ','HJ','CO','BTN','SB','BB'];
+const POS_LABEL={UTG:'UTG',UTG1:'UTG+1',LJ:'LJ',HJ:'HJ',CO:'CO',BTN:'BTN',SB:'SB',BB:'BB'};
+function cmb(r1,r2,t){return t==='pair'?6:t==='s'?4:12;}
+function ckey(r1,r2,t){
+  if(t==='pair')return r1+r2;
+  if(t==='s')return r1+r2+'s';
+  return(RANKS.indexOf(r1)<RANKS.indexOf(r2)?r1+r2:r2+r1)+'o';
+}
+
+const BASE={
+  UTG:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','AKs','AQs','AJs','ATs','A9s','A8s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','QJs','QTs','JTs','J9s','T9s','T8s','98s','97s','87s','76s','65s','54s','AKo','AQo','AJo','ATo','KQo','KJo','QJo'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','AKs','AQs','AJs','ATs','A9s','A5s','A4s','KQs','KJs','KTs','QJs','QTs','JTs','T9s','98s','87s','76s','AKo','AQo','AJo','KQo','KJo'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','AKs','AQs','AJs','ATs','A9s','A8s','A7s','KQs','KJs','AKo','AQo','AJo','ATo','KQo'],call:[],limp:[]}
+  },
+  UTG1:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','QJs','QTs','Q9s','JTs','J9s','T9s','T8s','98s','97s','87s','76s','65s','54s','AKo','AQo','AJo','ATo','KQo','KJo','KTo','QJo'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','AKs','AQs','AJs','ATs','A9s','A5s','A4s','A3s','KQs','KJs','KTs','QJs','QTs','JTs','T9s','98s','87s','76s','65s','AKo','AQo','AJo','ATo','KQo','KJo'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','KQs','KJs','KTs','AKo','AQo','AJo','ATo','A9o','KQo'],call:[],limp:[]}
+  },
+  LJ:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','JTs','J9s','J8s','T9s','T8s','98s','97s','87s','86s','76s','65s','54s','43s','AKo','AQo','AJo','ATo','KQo','KJo','KTo','QJo','QTo'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','AKs','AQs','AJs','ATs','A9s','A8s','A5s','A4s','A3s','KQs','KJs','KTs','K9s','QJs','QTs','JTs','J9s','T9s','98s','87s','76s','65s','AKo','AQo','AJo','ATo','KQo','KJo','KTo','QJo'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','KQs','KJs','KTs','QJs','AKo','AQo','AJo','ATo','A9o','KQo','KJo'],call:[],limp:[]}
+  },
+  HJ:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','K7s','QJs','QTs','Q9s','Q8s','JTs','J9s','J8s','T9s','T8s','T7s','98s','97s','96s','87s','86s','76s','75s','65s','64s','54s','53s','43s','AKo','AQo','AJo','ATo','A9o','KQo','KJo','KTo','K9o','QJo','QTo','JTo'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A5s','A4s','A3s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','JTs','J9s','T9s','T8s','98s','97s','87s','76s','65s','54s','AKo','AQo','AJo','ATo','A9o','KQo','KJo','KTo','QJo','QTo'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','22','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','KQs','KJs','KTs','K9s','QJs','QTs','JTs','T9s','AKo','AQo','AJo','ATo','A9o','A8o','KQo','KJo','KTo'],call:[],limp:[]}
+  },
+  CO:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','K7s','K6s','QJs','QTs','Q9s','Q8s','Q7s','JTs','J9s','J8s','J7s','T9s','T8s','T7s','T6s','98s','97s','96s','87s','86s','85s','76s','75s','65s','64s','54s','53s','43s','AKo','AQo','AJo','ATo','A9o','A8o','KQo','KJo','KTo','K9o','QJo','QTo','Q9o','JTo','J9o','T9o'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','Q8s','JTs','J9s','J8s','T9s','T8s','98s','97s','87s','86s','76s','65s','54s','AKo','AQo','AJo','ATo','A9o','A8o','KQo','KJo','KTo','K9o','QJo','QTo','JTo'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','22','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','JTs','J9s','T9s','98s','87s','AKo','AQo','AJo','ATo','A9o','A8o','A7o','KQo','KJo','KTo','K9o','QJo','QTo','JTo'],call:[],limp:[]}
+  },
+  BTN:{
+    deep:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','22','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','K7s','K6s','K5s','K4s','K3s','K2s','QJs','QTs','Q9s','Q8s','Q7s','Q6s','Q5s','JTs','J9s','J8s','J7s','J6s','T9s','T8s','T7s','T6s','T5s','98s','97s','96s','95s','87s','86s','85s','84s','76s','75s','74s','65s','64s','63s','54s','53s','52s','43s','42s','32s','AKo','AQo','AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','A2o','KQo','KJo','KTo','K9o','K8o','K7o','QJo','QTo','Q9o','Q8o','JTo','J9o','J8o','T9o','T8o','98o','97o','87o','76o'],call:[],limp:[]},
+    medium:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','22','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','K7s','K5s','K4s','QJs','QTs','Q9s','Q8s','Q7s','JTs','J9s','J8s','J7s','T9s','T8s','T7s','98s','97s','96s','87s','86s','76s','75s','65s','64s','54s','53s','43s','AKo','AQo','AJo','ATo','A9o','A8o','A7o','A5o','A4o','KQo','KJo','KTo','K9o','K8o','QJo','QTo','Q9o','JTo','J9o','T9o','T8o','98o','87o'],call:[],limp:[]},
+    short:{raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','33','22','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','K7s','K6s','K5s','K4s','K3s','QJs','QTs','Q9s','Q8s','Q7s','Q6s','JTs','J9s','J8s','J7s','T9s','T8s','T7s','T6s','98s','97s','96s','87s','86s','76s','75s','65s','54s','43s','AKo','AQo','AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','KQo','KJo','KTo','K9o','K8o','K7o','QJo','QTo','Q9o','JTo','J9o','T9o','98o','87o','76o'],call:[],limp:[]}
+  },
+  SB:{
+    deep:{
+      raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','JTs','J9s','T9s','T8s','98s','97s','87s','76s','65s','54s','AKo','AQo','AJo','ATo','A9o','KQo','KJo','KTo','QJo'],
+      call:[],
+      limp:['44','33','22','K7s','K6s','K5s','K4s','K3s','K2s','Q8s','Q7s','Q6s','Q5s','J8s','J7s','J6s','T7s','T6s','96s','95s','86s','85s','75s','74s','64s','63s','53s','52s','43s','42s','32s','A8o','A7o','A6o','A5o','A4o','A3o','A2o','K9o','K8o','Q9o','Q8o','J9o','J8o','T9o','T8o','98o','87o','76o']
+    },
+    medium:{
+      raise:['AA','KK','QQ','JJ','TT','99','88','77','66','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','KQs','KJs','KTs','K9s','QJs','QTs','Q9s','JTs','J9s','T9s','T8s','98s','97s','87s','76s','65s','AKo','AQo','AJo','ATo','A9o','KQo','KJo','KTo','QJo'],
+      call:[],
+      limp:['55','44','33','22','A2s','K8s','K7s','K6s','Q8s','Q7s','J8s','J7s','T7s','96s','86s','75s','64s','53s','43s','A8o','A7o','A6o','A5o','A4o','A3o','A2o','K9o','K8o','Q9o','J9o','T9o','98o','87o']
+    },
+    short:{
+      raise:['AA','KK','QQ','JJ','TT','99','88','77','66','55','44','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s','KQs','KJs','KTs','K9s','K8s','QJs','QTs','Q9s','JTs','J9s','T9s','98s','87s','76s','AKo','AQo','AJo','ATo','A9o','A8o','A7o','KQo','KJo','KTo','K9o','QJo','QTo','JTo'],
+      call:[],
+      limp:['33','22','K7s','K6s','Q8s','Q7s','J8s','T8s','97s','86s','75s','64s','54s','53s','43s','A6o','A5o','A4o','A3o','A2o','K8o','Q9o','J9o','T9o','98o']
+    }
+  },
+  BB:{
+    deep:{
+      raise:['AA','KK','QQ','JJ','TT','99','AKs','AQs','AJs','ATs','A5s','KQs','KJs','AKo','AQo'],
+      call:['88','77','66','55','44','33','22','A9s','A8s','A7s','A6s','A4s','A3s','A2s','KTs','K9s','K8s','K7s','K6s','K5s','K4s','K3s','K2s','QTs','Q9s','Q8s','Q7s','Q6s','Q5s','JTs','J9s','J8s','J7s','J6s','T9s','T8s','T7s','T6s','98s','97s','96s','87s','86s','85s','76s','75s','65s','64s','54s','53s','43s','AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','A2o','KQo','KJo','KTo','K9o','K8o','QJo','QTo','Q9o','JTo','J9o','T9o','T8o','98o','87o','76o'],
+      limp:[]
+    },
+    medium:{
+      raise:['AA','KK','QQ','JJ','TT','99','AKs','AQs','AJs','A5s','KQs','AKo','AQo'],
+      call:['88','77','66','55','44','33','22','ATs','A9s','A8s','A7s','A6s','A4s','A3s','A2s','KJs','KTs','K9s','K8s','K7s','K6s','QJs','QTs','Q9s','Q8s','JTs','J9s','J8s','T9s','T8s','98s','97s','87s','76s','65s','54s','AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','KQo','KJo','KTo','K9o','QJo','QTo','JTo','T9o','98o','87o'],
+      limp:[]
+    },
+    short:{
+      raise:['AA','KK','QQ','JJ','TT','99','88','AKs','AQs','AJs','ATs','A9s','A5s','KQs','KJs','QJs','JTs','AKo','AQo','AJo','ATo','KQo'],
+      call:['77','66','55','44','33','22','A8s','A7s','A6s','A4s','A3s','A2s','KTs','K9s','K8s','QTs','Q9s','T9s','98s','87s','A9o','A8o','A7o','A6o','A5o','A4o','KJo','KTo','QJo','JTo','T9o'],
+      limp:[]
+    }
+  }
+};
+
+let curPos='UTG',curStack='deep',curAction='raise',editMode=false,isDragging=false,dragAct=undefined;
+const EDIT_CYCLE=['raise','call','limp',null];
+const userRanges={};
+
+function initRanges(){
+  POSITIONS.forEach(p=>{
+    userRanges[p]={};
+    ['deep','medium','short'].forEach(s=>{
+      userRanges[p][s]={};
+      ['raise','call','limp'].forEach(a=>{
+        (BASE[p][s][a]||[]).forEach(k=>{userRanges[p][s][k]=a;});
+      });
+    });
+  });
+}
+
+function buildGrid(){
+  const grid=document.getElementById('hand-grid');
+  grid.innerHTML='';
+  for(let r=0;r<13;r++){
+    for(let c=0;c<13;c++){
+      const r1=RANKS[r],r2=RANKS[c];
+      const t=r===c?'pair':r<c?'s':'o';
+      const k=ckey(r1,r2,t);
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.textContent=k;
+      cell.dataset.key=k;cell.dataset.r1=r1;cell.dataset.r2=r2;cell.dataset.t=t;
+      cell.addEventListener('mousedown',e=>{e.preventDefault();startPaint(cell);});
+      cell.addEventListener('mouseenter',e=>{if(isDragging)paintCell(cell);showTip(cell,e);});
+      cell.addEventListener('mousemove',e=>showTip(cell,e));
+      cell.addEventListener('mouseleave',hideTip);
+      grid.appendChild(cell);
+    }
+  }
+  document.addEventListener('mouseup',()=>{isDragging=false;dragAct=undefined;});
+}
+
+function renderGrid(){
+  const range=userRanges[curPos][curStack];
+  document.querySelectorAll('.cell').forEach(cell=>{
+    const k=cell.dataset.key;
+    const action=range[k];
+    cell.className='cell';
+    if(!action)return;
+    const show=curAction==='all'||curAction==='edit'||action===curAction;
+    if(!show)return;
+    cell.classList.add(curStack==='short'&&action==='raise'?'push':action);
+  });
+  updateStats();
+  updateCtx();
+  document.getElementById('pf-notice').classList.toggle('show',curStack==='short');
+}
+
+function startPaint(cell){
+  if(!editMode)return;
+  isDragging=true;
+  const cur=userRanges[curPos][curStack][cell.dataset.key]||null;
+  dragAct=EDIT_CYCLE[(EDIT_CYCLE.indexOf(cur)+1)%EDIT_CYCLE.length];
+  paintCell(cell);
+}
+function paintCell(cell){
+  if(!editMode)return;
+  const k=cell.dataset.key;
+  if(dragAct===null)delete userRanges[curPos][curStack][k];
+  else userRanges[curPos][curStack][k]=dragAct;
+  renderGrid();
+}
+
+function setPos(p){
+  curPos=p;
+  document.querySelectorAll('.pos-btn').forEach(b=>b.classList.toggle('active',b.textContent===POS_LABEL[p]));
+  renderGrid();
+}
+function setStack(s){
+  curStack=s;
+  ['deep','medium','short'].forEach(x=>{document.getElementById('sb-'+x).className='stack-btn'+(x===s?' active-'+x:'');});
+  renderGrid();
+}
+function setAction(a){
+  if(a==='edit'){
+    editMode=!editMode;
+    document.getElementById('act-edit').className='act-btn'+(editMode?' active-edit':'');
+    document.getElementById('edit-notice').classList.toggle('show',editMode);
+    if(editMode)curAction='all';else{curAction='raise';renderActBtns();}
+    renderGrid();return;
+  }
+  editMode=false;
+  document.getElementById('act-edit').className='act-btn';
+  document.getElementById('edit-notice').classList.remove('show');
+  curAction=a;renderActBtns();renderGrid();
+}
+function renderActBtns(){
+  ['raise','call','limp','all'].forEach(a=>{
+    const b=document.getElementById('act-'+a);
+    if(b)b.className='act-btn'+(a===curAction?' active-'+a:'');
+  });
+}
+function resetEdits(){
+  userRanges[curPos][curStack]={};
+  ['raise','call','limp'].forEach(a=>{(BASE[curPos][curStack][a]||[]).forEach(k=>{userRanges[curPos][curStack][k]=a;});});
+  renderGrid();
+}
+
+function updateStats(){
+  const range=userRanges[curPos][curStack];
+  const counts={raise:0,call:0,limp:0};
+  document.querySelectorAll('.cell').forEach(cell=>{
+    const a=range[cell.dataset.key];
+    if(a)counts[a]=(counts[a]||0)+cmb(cell.dataset.r1,cell.dataset.r2,cell.dataset.t);
+  });
+  const total=counts.raise+counts.call+counts.limp;
+  document.getElementById('s-combos').textContent=total;
+  document.getElementById('s-pct').textContent=(total/TOTAL*100).toFixed(1)+'%';
+  ['raise','call','limp'].forEach(a=>{
+    document.getElementById('p-'+a).textContent=counts[a]||0;
+    document.getElementById('b-'+a).style.width=total>0?(counts[a]/total*100)+'%':'0%';
+  });
+}
+
+const NOTES={
+  UTG:{
+    deep:`<strong>UTG — 8 players left to act</strong><br>Tightest seat. Open ~13% — strong pairs, best broadways, top suited connectors only.<br><span class="tip">Tip: No limping. Raise or fold.</span>`,
+    medium:`<strong>UTG — Mid Stack 40–60BB</strong><br>Tighten slightly. Speculative hands need fold equity to be worthwhile.<br><span class="icm">ICM: Tighten more near bubble vs big stacks.</span>`,
+    short:`<strong>UTG — Short Stack 20–30BB</strong><br>Shove or fold. No small raises. Strong hands only from first position.<br><span class="icm">ICM: Avoid big stacks who can call you off easily.</span>`
+  },
+  UTG1:{
+    deep:`<strong>UTG+1 — 7 players behind</strong><br>Marginally wider than UTG. Add mid-pairs and extra suited hands. ~15%.<br><span class="tip">Still early position — no weak speculative hands.</span>`,
+    medium:`<strong>UTG+1 — Mid Stack 40–60BB</strong><br>One extra tier of hands vs UTG. Suited connectors begin to have value.`,
+    short:`<strong>UTG+1 — Short Stack 20–30BB</strong><br>Wider shove than UTG. Add small pairs and ax-suited.<br><span class="icm">ICM: Stack sizes of remaining players matter a lot.</span>`
+  },
+  LJ:{
+    deep:`<strong>LJ (Lojack) — 6 players behind</strong><br>3rd from dealer button. Range ~17–18%. More suited connectors and mid-pairs added.<br><span class="tip">Steal potential starts to meaningfully increase here.</span>`,
+    medium:`<strong>LJ — Mid Stack 40–60BB</strong><br>Add 55, more ax-suited combos, and suited one-gappers.`,
+    short:`<strong>LJ — Short Stack 20–30BB</strong><br>Shove range expands. All pairs, most ax-suited, strong broadways.<br><span class="icm">ICM: Be aware of final table bubble stack dynamics.</span>`
+  },
+  HJ:{
+    deep:`<strong>HJ (Hijack) — 5 players behind</strong><br>Steal pressure grows. Range ~22%. Weak suited aces, suited kings, more one-gappers.<br><span class="tip">Target tight CO/BTN with wider steals.</span>`,
+    medium:`<strong>HJ — Mid Stack 40–60BB</strong><br>Suited connectors and small pairs playable. Good chip accumulation seat.<br><span class="icm">ICM: HJ opens are high-leverage spots mid-tournament.</span>`,
+    short:`<strong>HJ — Short Stack 20–30BB</strong><br>Very wide shove — all pairs, wide ax, suited hands down to 9-high.<br><span class="icm">ICM: Avoid calling off shoves without top of range.</span>`
+  },
+  CO:{
+    deep:`<strong>CO (Cutoff) — 4 players behind</strong><br>One right of BTN. ~28% range. Wide suited and mixed broadway combos.<br><span class="tip">BTN will defend wide — be ready for postflop pressure.</span>`,
+    medium:`<strong>CO — Mid Stack 40–60BB</strong><br>Open almost any suited hand and most offsuit broadways. High fold equity.`,
+    short:`<strong>CO — Short Stack 20–30BB</strong><br>Very wide shove. Nearly any pair, most ax, wide suited combos.<br><span class="icm">ICM: Bubble = tighten. Late stage = widen for chip accumulation.</span>`
+  },
+  BTN:{
+    deep:`<strong>BTN (Button) — Best seat</strong><br>Last to act postflop always. ~45% range. Open almost any suited hand and wide offsuit.<br><span class="tip">Punish tight blinds — MTT players over-fold to BTN opens.</span>`,
+    medium:`<strong>BTN — Mid Stack 40–60BB</strong><br>Still very wide ~40%. Slightly trim the weakest offsuit combos. Max pressure on blinds.`,
+    short:`<strong>BTN — Short Stack 20–30BB</strong><br>Extremely wide shove. Nearly any two cards vs tight blinds.<br><span class="icm">ICM: BTN steals are the most important chip-building spots in MTTs.</span>`
+  },
+  SB:{
+    deep:`<strong>SB (Small Blind) — Worst postflop position</strong><br>Mix of raise and limp. Raise strong hands to steal. Limp speculative hands to keep pots small.<br><span class="tip">Limping traps BB and disguises your range.</span>`,
+    medium:`<strong>SB — Mid Stack 40–60BB</strong><br>Limp range tightens — fewer implied odds for speculative hands.<br><span class="icm">ICM: SB vs BB is highest ICM pressure spot in the tournament.</span>`,
+    short:`<strong>SB — Short Stack 20–30BB</strong><br>Mostly shove or fold. Small limp range for disguise only.<br><span class="icm">ICM: SB shoves vs BB are often +EV even with weak hands.</span>`
+  },
+  BB:{
+    deep:`<strong>BB (Big Blind) — Defending vs opens</strong><br>Already invested 1BB — defend wide, 3-bet strong, fold weak.<br><span class="tip">Defend much wider vs BTN/CO steals than vs UTG opens.</span>`,
+    medium:`<strong>BB — Mid Stack 40–60BB</strong><br>Slightly tighter defend range — fewer implied odds for speculative calls.<br><span class="icm">ICM: Avoid marginal calls vs big stack shoves near bubble.</span>`,
+    short:`<strong>BB — Short Stack 20–30BB</strong><br>3-bet/shove strong hands. Call shoves wide — you're closing action with pot odds.<br><span class="icm">ICM: Getting 2:1 on calls = need ~33% equity to break even.</span>`
+  }
+};
+
+function updateCtx(){
+  document.getElementById('ctx-text').innerHTML=NOTES[curPos][curStack]||'';
+  const sl={deep:'Deep 100BB+',medium:'Mid 40–60BB',short:'Short 20–30BB'};
+  const al={raise:'Raise / Push',call:'Call / Defend',limp:'Limp',all:'Full Range',edit:'Edit Mode'};
+  document.getElementById('grid-title').textContent=POS_LABEL[curPos]+' — '+al[curAction]+' · '+sl[curStack];
+}
+
+const AC={raise:'var(--raise)',call:'var(--call)',limp:'var(--limp)',fold:'var(--muted)'};
+function showTip(cell,e){
+  const k=cell.dataset.key,t=cell.dataset.t;
+  const c=cmb(cell.dataset.r1,cell.dataset.r2,t);
+  const a=userRanges[curPos][curStack][k]||'fold';
+  const tl=t==='pair'?'Pocket pair':t==='s'?'Suited':'Offsuit';
+  const tip=document.getElementById('tip');
+  tip.innerHTML='<strong style="color:var(--gold)">'+k+'</strong> — '+tl+' · '+c+' combos<br>Action: <strong style="color:'+AC[a]+'">'+a.toUpperCase()+'</strong>';
+  tip.style.opacity='1';
+  tip.style.left=(e.clientX+14)+'px';
+  tip.style.top=(e.clientY-10)+'px';
+}
+function hideTip(){document.getElementById('tip').style.opacity='0';}
+
+initRanges();
+buildGrid();
+renderGrid();
+renderActBtns();
+</script>
+</body>
+</html>
